@@ -2,14 +2,30 @@
 
 exports.createOrder = async (req, res) => {
   try {
-    const { items, paymentMethod } = req.body;
+    const { branchId, employeeId, items, paymentMethod } = req.body;
 
+    // ตรวจสอบ branchId
+    if (!Number.isInteger(branchId) || branchId <= 0) {
+      return res.status(400).json({
+        error: "branchId ไม่ถูกต้อง",
+      });
+    }
+
+    // ตรวจสอบ employeeId
+    if (!Number.isInteger(employeeId) || employeeId <= 0) {
+      return res.status(400).json({
+        error: "employeeId ไม่ถูกต้อง",
+      });
+    }
+
+    // ตรวจสอบ items
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
         error: "items ต้องเป็น array และต้องมีอย่างน้อย 1 รายการ",
       });
     }
 
+    // ตรวจสอบ paymentMethod
     const validPaymentMethods = ["cash", "qr", "card"];
 
     if (!validPaymentMethods.includes(paymentMethod)) {
@@ -18,11 +34,11 @@ exports.createOrder = async (req, res) => {
       });
     }
 
+    // ตรวจสอบสินค้า
     for (const item of items) {
       if (
-        !item.name ||
-        typeof item.name !== "string" ||
-        !Number.isFinite(Number(item.price)) ||
+        !Number.isInteger(item.menuId) ||
+        item.menuId <= 0 ||
         !Number.isInteger(item.quantity) ||
         item.quantity <= 0
       ) {
@@ -32,17 +48,14 @@ exports.createOrder = async (req, res) => {
       }
     }
 
-    const totalAmount = items.reduce(
-      (sum, item) => sum + Number(item.price) * item.quantity,
-      0,
-    );
-
-    const orderId = await orderModel.create(paymentMethod, totalAmount);
-
-    res.status(201).json({
-      orderId,
-      totalAmount,
+    const result = await orderModel.createOrder({
+      branchId,
+      employeeId,
+      paymentMethod,
+      items,
     });
+
+    res.status(201).json(result);
   } catch (err) {
     console.error(err);
 
