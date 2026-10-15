@@ -83,3 +83,103 @@ exports.createOrder = async (req, res) => {
     });
   }
 };
+
+
+function parsePositiveId(value) {
+  if (typeof value === "string" && /^[1-9]\d*$/.test(value)) {
+    value = Number(value);
+  }
+
+  return Number.isSafeInteger(value) &&
+    value > 0 &&
+    value <= 2147483647
+    ? value
+    : null;
+}
+
+// GET /api/orders/:order_id?branchId=1
+exports.getOrderById = async (req, res) => {
+  const orderId = parsePositiveId(req.params.order_id);
+  const branchId = parsePositiveId(req.query.branchId);
+
+  if (!orderId || !branchId) {
+    return res.status(400).json({
+      error: "ต้องระบุ order_id และ branchId ให้ถูกต้อง",
+    });
+  }
+
+  try {
+    const order = await orderModel.findById(orderId, branchId);
+
+    if (!order) {
+      return res.status(404).json({
+        error: "ไม่พบออเดอร์ในสาขานี้",
+      });
+    }
+
+    return res.json(order);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      error: "เกิดข้อผิดพลาดในการค้นหาออเดอร์",
+    });
+  }
+};
+
+// GET /api/orders/branch/:branch_id
+exports.getOrdersByBranch = async (req, res) => {
+  const branchId = parsePositiveId(req.params.branch_id);
+
+  if (!branchId) {
+    return res.status(400).json({
+      error: "branch_id ต้องเป็นจำนวนเต็มมากกว่า 0",
+    });
+  }
+
+  try {
+    const orders = await orderModel.findByBranch(branchId);
+    return res.json(orders);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      error: "เกิดข้อผิดพลาดในการค้นหาออเดอร์ของสาขา",
+    });
+  }
+};
+
+// DELETE /api/orders/:order_id?branchId=1
+exports.deleteOrder = async (req, res) => {
+  const orderId = parsePositiveId(req.params.order_id);
+  const branchId = parsePositiveId(req.query.branchId);
+
+  if (!orderId || !branchId) {
+    return res.status(400).json({
+      error: "ต้องระบุ order_id และ branchId ให้ถูกต้อง",
+    });
+  }
+
+  try {
+    const affectedRows = await orderModel.remove(orderId, branchId);
+
+    if (affectedRows === 0) {
+      return res.status(404).json({
+        error: "ไม่พบออเดอร์ในสาขานี้",
+      });
+    }
+
+    return res.json({
+      deleted: true,
+      orderId,
+    });
+  } catch (err) {
+    console.error(err);
+
+    return res.status(err.status || 500).json({
+      error:
+        err.status
+          ? err.message
+          : "เกิดข้อผิดพลาดในการยกเลิกออเดอร์",
+    });
+  }
+};
+
