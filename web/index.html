@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>brue rim lay — Cafe POS</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="#"
+        ><span class="brand-icon">≈</span
+        ><span>brue rim lay<small>CAFE POINT OF SALE</small></span></a
+      >
+      <div class="branch">
+        <span>สาขาที่ให้บริการ</span><strong>บางแสน ↗</strong
+        ><small>พร้อมรับออร์เดอร์ <i></i></small>
+      </div>
+      <nav aria-label="เมนูหลัก">
+        <button class="nav active" data-page="order">
+          ▦ <span>รายการสั่งซื้อ</span></button
+        ><button class="nav" data-page="menus">
+          ☷ <span>จัดการเมนู</span></button
+        ><button class="nav" data-page="reports">
+          ▥ <span>รายงานยอดขาย</span>
+        </button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="avatar">br</div>
+        <div><strong>พนักงานหน้าร้าน</strong><small>สาขาบางแสน</small></div>
+      </div>
+    </aside>
+    <main>
+      <header>
+        <div>
+          <span class="eyebrow">BRUE RIM LAY · COFFEE BY THE SEA</span>
+          <h1 id="page-title">รายการสั่งซื้อใหม่</h1>
+          <p id="page-subtitle">
+            brue rim lay · เติมความสดชื่นให้ทุกวันริมทะเล
+          </p>
+        </div>
+        <div class="date" id="today"></div>
+      </header>
+      <section id="order-page" class="page">
+        <div class="order-layout">
+          <div class="catalog">
+            <div class="catalog-toolbar">
+              <h2>เมนูเครื่องดื่ม <span id="menu-count"></span></h2>
+              <label class="search"
+                ><span>⌕</span
+                ><input
+                  id="search"
+                  type="search"
+                  placeholder="ค้นหาเมนูเครื่องดื่ม…"
+                  aria-label="ค้นหาเมนู"
+              /></label>
+            </div>
+            <div class="filters" id="filters">
+              <button class="selected" data-category="all">ทั้งหมด</button
+              ><button data-category="coffee">☕ กาแฟ</button
+              ><button data-category="tea">🍵 ชาและมัทฉะ</button
+              ><button data-category="other">🥛 อื่น ๆ</button>
+            </div>
+            <div class="product-grid" id="products"></div>
+            <div class="catalog-note">
+              🌊 brue rim lay — กาแฟแก้วโปรด ในบรรยากาศริมทะเล
+            </div>
+          </div>
+          <aside class="cart-panel">
+            <div class="cart-heading">
+              <div>
+                <span class="eyebrow">CURRENT ORDER</span>
+                <h2>รายการที่เลือก <span id="cart-count">0</span></h2>
+              </div>
+              <button id="clear-cart" class="text-button">ล้างรายการ</button>
+            </div>
+            <div class="order-type">
+              ● รับที่ร้าน <span>ออร์เดอร์ใหม่</span>
+            </div>
+            <div id="cart-items" class="cart-items"></div>
+            <div class="checkout">
+              <div class="total">
+                <span>ยอดรวมทั้งหมด</span><strong id="total">฿0.00</strong>
+              </div>
+              <fieldset>
+                <legend>วิธีชำระเงิน</legend>
+                <div class="payment-options">
+                  <label
+                    ><input type="radio" name="payment" value="cash" />
+                    เงินสด</label
+                  ><label
+                    ><input type="radio" name="payment" value="qr" /> QR
+                    Code</label
+                  >
+                </div>
+              </fieldset>
+              <label id="cash-field" hidden
+                >รับเงินมา (บาท)<input
+                  type="number"
+                  id="cash-received"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+              /></label>
+              <div class="change" id="change"></div>
+              <p class="error" id="order-error" role="alert"></p>
+              <button id="checkout" class="primary checkout-button">
+                ยืนยันการสั่งซื้อ <span>→</span></button
+              ><small class="payment-note"
+                >ระบบตัวอย่าง • ไม่รับชำระเงินจริง</small
+              >
+            </div>
+          </aside>
+        </div>
+      </section>
+      <section id="menus-page" class="page" hidden>
+        <div class="section-toolbar">
+          <h2>รายการเมนูทั้งหมด</h2>
+          <button id="add-menu" class="primary">+ เพิ่มเมนูใหม่</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>เมนู</th>
+                <th>หมวดหมู่</th>
+                <th>ราคา / บาท</th>
+                <th>สต็อก / แก้ว</th>
+                <th>จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="menu-table"></tbody>
+          </table>
+        </div>
+      </section>
+      <section id="reports-page" class="page" hidden>
+        <div class="section-toolbar">
+          <h2>ภาพรวมยอดขาย</h2>
+          <select id="report-range" aria-label="ช่วงเวลารายงาน">
+            <option value="today">วันนี้</option>
+            <option value="all">ทั้งหมด</option>
+          </select>
+        </div>
+        <div class="stats">
+          <article>
+            <span>ยอดขายรวม</span><strong id="sales-total"></strong
+            ><small>บาท</small>
+          </article>
+          <article>
+            <span>จำนวนออร์เดอร์</span><strong id="sales-orders"></strong
+            ><small>รายการ</small>
+          </article>
+          <article>
+            <span>เครื่องดื่มที่ขาย</span><strong id="sales-cups"></strong
+            ><small>แก้ว</small>
+          </article>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>เมนู</th>
+                <th>จำนวนที่ขาย</th>
+                <th>ยอดขาย / บาท</th>
+              </tr>
+            </thead>
+            <tbody id="sales-table"></tbody>
+          </table>
+        </div>
+        <h2 class="history-heading">ประวัติการขาย</h2>
+        <div id="history"></div>
+      </section>
+      <footer>
+        brue rim lay <span>brue rim lay · coffee & coastal moments</span>
+      </footer>
+    </main>
+    <dialog id="menu-dialog">
+      <form id="menu-form">
+        <div class="dialog-heading">
+          <h2 id="form-title">เพิ่มเมนูใหม่</h2>
+          <button type="button" class="close-dialog" aria-label="ปิด">×</button>
+        </div>
+        <label>ชื่อเมนู<input id="menu-name" required maxlength="60" /></label
+        ><label
+          >หมวดหมู่<select id="menu-category">
+            <option value="coffee">กาแฟ</option>
+            <option value="tea">ชาและมัทฉะ</option>
+            <option value="other">อื่น ๆ</option>
+          </select></label
+        >
+        <div class="form-row">
+          <label
+            >ราคา (บาท)<input
+              id="menu-price"
+              type="number"
+              min="0.01"
+              step="0.01"
+              required /></label
+          ><label
+            >สต็อก (แก้ว)<input
+              id="menu-stock"
+              type="number"
+              min="0"
+              step="1"
+              required
+          /></label>
+        </div>
+        <button class="primary" type="submit">บันทึกเมนู</button>
+      </form>
+    </dialog>
+    <dialog id="receipt-dialog">
+      <div id="receipt"></div>
+      <div class="receipt-actions">
+        <button id="print" class="primary">พิมพ์ใบเสร็จ</button
+        ><button class="secondary close-dialog">ปิด</button>
+      </div>
+    </dialog>
+    <div id="toast" role="status"></div>
+    <script src="script.js"></script>
+  </body>
+</html>
