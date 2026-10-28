@@ -112,7 +112,7 @@ async function selectBranch(id) {
     state.employee = employees[0] || null;
     $("#employee-name").textContent =
       state.employee?.name || "ไม่พบพนักงานในสาขานี้";
-    $("#employee-branch").textContent = "สาขา" + branchName();
+    $("#employee-branch").textContent = "สาขา " + branchName();
     $("#branch-status").innerHTML = "พร้อมรับออร์เดอร์ <i></i>";
     $("#branch-status").classList.remove("offline");
   } catch (err) {
@@ -313,7 +313,7 @@ function showReceipt(order) {
       ? ""
       : `<br>รับเงิน: ฿${money(order.received)}<br>เงินทอน: ฿${money(order.change)}`;
   $("#receipt").innerHTML =
-    `<div class="receipt-brand">🌿 brue rim lay Coffee</div><div class="receipt-sub">ใบเสร็จรับเงิน · สาขา${escapeHTML(branchName())}</div><div class="receipt-info">เลขที่ #${escapeHTML(order.orderId)}<br>${new Date(order.date).toLocaleString("th-TH")}<br>พนักงาน: ${escapeHTML(state.employee?.name || "-")}</div><div class="receipt-lines">${order.items.map((i) => `<div class="receipt-line"><span>${escapeHTML(i.name)} × ${i.qty}<small>฿${money(i.price)} / แก้ว</small></span><span>฿${money(i.price * i.qty)}</span></div>`).join("")}</div><div class="receipt-total"><span>รวมทั้งหมด</span><span>฿${money(order.total)}</span></div><div class="receipt-info">ชำระโดย: ${paymentLabels[order.payment] || escapeHTML(order.payment)}${paid}</div><div class="receipt-thanks">ขอบคุณที่ให้เราเป็นส่วนหนึ่งของวันดี ๆ ♡<small>ใบเสร็จจากระบบตัวอย่าง</small></div>`;
+    `<div class="receipt-brand">🌿 brue rim lay Coffee</div><div class="receipt-sub">ใบเสร็จรับเงิน · สาขา ${escapeHTML(branchName())}</div><div class="receipt-info">เลขที่ #${escapeHTML(order.orderId)}<br>${new Date(order.date).toLocaleString("th-TH")}<br>พนักงาน: ${escapeHTML(state.employee?.name || "-")}</div><div class="receipt-lines">${order.items.map((i) => `<div class="receipt-line"><span>${escapeHTML(i.name)} × ${i.qty}<small>฿${money(i.price)} / แก้ว</small></span><span>฿${money(i.price * i.qty)}</span></div>`).join("")}</div><div class="receipt-total"><span>รวมทั้งหมด</span><span>฿${money(order.total)}</span></div><div class="receipt-info">ชำระโดย: ${paymentLabels[order.payment] || escapeHTML(order.payment)}${paid}</div><div class="receipt-thanks">ขอบคุณที่ให้เราเป็นส่วนหนึ่งของวันดี ๆ ♡<small>ใบเสร็จจากระบบตัวอย่าง</small></div>`;
   $("#receipt-dialog").showModal();
 }
 $("#print").onclick = () => window.print();
@@ -419,7 +419,7 @@ $("#menu-form").onsubmit = async (e) => {
   await loadMenus();
 };
 async function loadReports() {
-  $("#report-branch").textContent = "· สาขา" + branchName();
+  $("#report-branch").textContent = "· สาขา " + branchName();
   let sales, orders;
   try {
     [sales, orders] = await Promise.all([
