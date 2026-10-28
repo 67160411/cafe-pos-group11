@@ -1,7 +1,7 @@
 "use strict";
 const $ = (selector) => document.querySelector(selector);
 const money = (value) =>
-  Number(value).toLocaleString("th-TH", {
+  Number(value).toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -16,7 +16,7 @@ const escapeHTML = (value) =>
 
 // ต้องตรงกับ LOW_STOCK_THRESHOLD ใน src/models/menuModel.js
 const LOW_STOCK_THRESHOLD = 10;
-const paymentLabels = { cash: "เงินสด", qr: "QR Code", card: "บัตร" };
+const paymentLabels = { cash: "Cash", qr: "QR Code", card: "Card" };
 const drinkColors = [
   { color: "#75503b", bg: "#e8e6d9" },
   { color: "#8d9c64", bg: "#e4ebd6" },
@@ -32,7 +32,7 @@ async function api(method, url, body) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `เกิดข้อผิดพลาด (HTTP ${res.status})`);
+  if (!res.ok) throw new Error(data.error || `Something went wrong (HTTP ${res.status})`);
   return data;
 }
 
@@ -77,7 +77,7 @@ async function init() {
       api("GET", "/api/categories"),
     ]);
   } catch (err) {
-    $("#branch-status").textContent = "เชื่อมต่อ server ไม่ได้";
+    $("#branch-status").textContent = "Cannot connect to server";
     $("#branch-status").classList.add("offline");
     toast(err.message);
     return;
@@ -111,9 +111,9 @@ async function selectBranch(id) {
     const employees = await api("GET", `/api/branches/${id}/employees`);
     state.employee = employees[0] || null;
     $("#employee-name").textContent =
-      state.employee?.name || "ไม่พบพนักงานในสาขานี้";
-    $("#employee-branch").textContent = "สาขา " + branchName();
-    $("#branch-status").innerHTML = "พร้อมรับออร์เดอร์ <i></i>";
+      state.employee?.name || "No cashier in this branch";
+    $("#employee-branch").textContent = branchName() + " branch";
+    $("#branch-status").innerHTML = "Ready for orders <i></i>";
     $("#branch-status").classList.remove("offline");
   } catch (err) {
     toast(err.message);
@@ -143,7 +143,7 @@ async function loadMenus() {
 
 function renderFilters() {
   $("#filters").innerHTML =
-    `<button class="${category === "all" ? "selected" : ""}" data-category="all">ทั้งหมด</button>` +
+    `<button class="${category === "all" ? "selected" : ""}" data-category="all">All</button>` +
     state.categories
       .map(
         (c) =>
@@ -161,7 +161,7 @@ function renderProducts() {
       (category === "all" || m.categoryId === category) &&
       (m.name + " " + m.categoryName).toLowerCase().includes(search),
   );
-  $("#menu-count").textContent = `${state.menus.length} เมนู`;
+  $("#menu-count").textContent = `${state.menus.length} items`;
   $("#products").innerHTML = menus.length
     ? menus
         .map((m) => {
@@ -170,10 +170,10 @@ function renderProducts() {
             m.stockQuantity -
             (cart.find((i) => i.menuId === m.menuId)?.qty || 0);
           // FR-09: เมนูที่หมด (หรือหยิบลงตะกร้าครบแล้ว) กดเพิ่มไม่ได้ตั้งแต่หน้าจอเลือกเมนู
-          return `<article class="product${m.stockQuantity === 0 ? " sold-out" : ""}"><div class="drink-art" style="--drink-bg:${look.bg};--drink-color:${look.color}"><div class="cup" aria-hidden="true"></div><span class="stock-badge ${remaining < LOW_STOCK_THRESHOLD ? "low" : ""}">${m.stockQuantity === 0 ? "หมด" : `เหลือ ${remaining} แก้ว`}</span></div><h3>${escapeHTML(m.name)}</h3><p class="thai-name">${escapeHTML(m.categoryName)}</p><div class="product-bottom"><span class="price">฿${money(m.price)} <small>/ แก้ว</small></span><button class="add-product" data-add="${m.menuId}" aria-label="เพิ่ม ${escapeHTML(m.name)}" ${remaining <= 0 ? "disabled" : ""}>+</button></div></article>`;
+          return `<article class="product${m.stockQuantity === 0 ? " sold-out" : ""}"><div class="drink-art" style="--drink-bg:${look.bg};--drink-color:${look.color}"><div class="cup" aria-hidden="true"></div><span class="stock-badge ${remaining < LOW_STOCK_THRESHOLD ? "low" : ""}">${m.stockQuantity === 0 ? "Sold out" : `${remaining} left`}</span></div><h3>${escapeHTML(m.name)}</h3><p class="thai-name">${escapeHTML(m.categoryName)}</p><div class="product-bottom"><span class="price">฿${money(m.price)} <small>/ cup</small></span><button class="add-product" data-add="${m.menuId}" aria-label="Add ${escapeHTML(m.name)}" ${remaining <= 0 ? "disabled" : ""}>+</button></div></article>`;
         })
         .join("")
-    : '<p class="empty">ไม่พบเมนูที่ค้นหา</p>';
+    : '<p class="empty">No drinks match your search</p>';
 }
 function renderCart() {
   $("#cart-count").textContent = cart.reduce((n, i) => n + i.qty, 0);
@@ -181,10 +181,10 @@ function renderCart() {
     ? cart
         .map(
           (i) =>
-            `<div class="cart-item"><div class="mini-cup" aria-hidden="true">☕</div><div class="cart-item-body"><strong>${escapeHTML(i.name)}</strong><small>฿${money(i.price)} / แก้ว</small><div class="item-bottom"><div class="quantity"><button data-qty="${i.menuId}" data-step="-1" aria-label="ลดจำนวน ${escapeHTML(i.name)}">−</button><span>${i.qty}</span><button data-qty="${i.menuId}" data-step="1" aria-label="เพิ่มจำนวน ${escapeHTML(i.name)}">+</button></div><strong>฿${money(i.price * i.qty)}</strong></div></div><button class="remove" data-remove="${i.menuId}" aria-label="ลบ ${escapeHTML(i.name)}">×</button></div>`,
+            `<div class="cart-item"><div class="mini-cup" aria-hidden="true">☕</div><div class="cart-item-body"><strong>${escapeHTML(i.name)}</strong><small>฿${money(i.price)} / cup</small><div class="item-bottom"><div class="quantity"><button data-qty="${i.menuId}" data-step="-1" aria-label="Decrease ${escapeHTML(i.name)}">−</button><span>${i.qty}</span><button data-qty="${i.menuId}" data-step="1" aria-label="Increase ${escapeHTML(i.name)}">+</button></div><strong>฿${money(i.price * i.qty)}</strong></div></div><button class="remove" data-remove="${i.menuId}" aria-label="Remove ${escapeHTML(i.name)}">×</button></div>`,
         )
         .join("")
-    : '<div class="empty"><span class="empty-icon">☕</span>ยังไม่มีรายการที่เลือก<br>เพิ่มเครื่องดื่มแก้วโปรดเพื่อเริ่มออร์เดอร์</div>';
+    : '<div class="empty"><span class="empty-icon">☕</span>No items yet<br>Add a drink to start an order</div>';
   $("#total").textContent = "฿" + money(cartTotal());
   $("#checkout").disabled = !cart.length;
   $("#clear-cart").disabled = !cart.length;
@@ -196,7 +196,7 @@ function addItem(menuId) {
   if (!menu) return;
   const item = cart.find((i) => i.menuId === menuId);
   if ((item?.qty || 0) >= menu.stockQuantity) {
-    toast("จำนวนเกินสต็อกที่มี");
+    toast("Not enough stock");
     return;
   }
   if (item) item.qty++;
@@ -244,7 +244,7 @@ function updateChange() {
   const received = Number($("#cash-received").value);
   $("#change").textContent =
     cash && $("#cash-received").value !== "" && received >= cartTotal()
-      ? `เงินทอน ฿${money(received - cartTotal())}`
+      ? `Change ฿${money(received - cartTotal())}`
       : "";
 }
 document.querySelectorAll('[name="payment"]').forEach(
@@ -260,14 +260,14 @@ $("#checkout").onclick = async () => {
   const total = cartTotal();
   const received = Number($("#cash-received").value);
   let error = "";
-  if (!cart.length) error = "กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ";
-  else if (!payment) error = "กรุณาเลือกวิธีชำระเงิน";
+  if (!cart.length) error = "Please add at least 1 item";
+  else if (!payment) error = "Please select a payment method";
   else if (
     payment === "cash" &&
     (!Number.isFinite(received) || received < total)
   )
-    error = "กรุณาระบุเงินที่รับมาให้เพียงพอกับยอดชำระ";
-  else if (!state.employee) error = "ไม่พบพนักงานของสาขานี้ในระบบ";
+    error = "Cash received must cover the total";
+  else if (!state.employee) error = "No cashier found for this branch";
   if (error) {
     $("#order-error").textContent = error;
     return;
@@ -311,9 +311,9 @@ function showReceipt(order) {
   const paid =
     order.received === undefined
       ? ""
-      : `<br>รับเงิน: ฿${money(order.received)}<br>เงินทอน: ฿${money(order.change)}`;
+      : `<br>Received: ฿${money(order.received)}<br>Change: ฿${money(order.change)}`;
   $("#receipt").innerHTML =
-    `<div class="receipt-brand">🌿 brue rim lay Coffee</div><div class="receipt-sub">ใบเสร็จรับเงิน · สาขา ${escapeHTML(branchName())}</div><div class="receipt-info">เลขที่ #${escapeHTML(order.orderId)}<br>${new Date(order.date).toLocaleString("th-TH")}<br>พนักงาน: ${escapeHTML(state.employee?.name || "-")}</div><div class="receipt-lines">${order.items.map((i) => `<div class="receipt-line"><span>${escapeHTML(i.name)} × ${i.qty}<small>฿${money(i.price)} / แก้ว</small></span><span>฿${money(i.price * i.qty)}</span></div>`).join("")}</div><div class="receipt-total"><span>รวมทั้งหมด</span><span>฿${money(order.total)}</span></div><div class="receipt-info">ชำระโดย: ${paymentLabels[order.payment] || escapeHTML(order.payment)}${paid}</div><div class="receipt-thanks">ขอบคุณที่ให้เราเป็นส่วนหนึ่งของวันดี ๆ ♡<small>ใบเสร็จจากระบบตัวอย่าง</small></div>`;
+    `<div class="receipt-brand">🌿 brue rim lay Coffee</div><div class="receipt-sub">Receipt · ${escapeHTML(branchName())} branch</div><div class="receipt-info">No. #${escapeHTML(order.orderId)}<br>${new Date(order.date).toLocaleString("en-GB")}<br>Cashier: ${escapeHTML(state.employee?.name || "-")}</div><div class="receipt-lines">${order.items.map((i) => `<div class="receipt-line"><span>${escapeHTML(i.name)} × ${i.qty}<small>฿${money(i.price)} / cup</small></span><span>฿${money(i.price * i.qty)}</span></div>`).join("")}</div><div class="receipt-total"><span>Total</span><span>฿${money(order.total)}</span></div><div class="receipt-info">Paid by: ${paymentLabels[order.payment] || escapeHTML(order.payment)}${paid}</div><div class="receipt-thanks">Thanks for being part of our day ♡<small>Demo system receipt</small></div>`;
   $("#receipt-dialog").showModal();
 }
 $("#print").onclick = () => window.print();
@@ -321,9 +321,9 @@ document
   .querySelectorAll(".close-dialog")
   .forEach((b) => (b.onclick = () => b.closest("dialog").close()));
 const pageNames = {
-  order: ["รายการสั่งซื้อใหม่", "brue rim lay · กินแล้วเสร็จ"],
-  menus: ["จัดการเมนู", "ดูแลเมนู ราคา และสต็อกเครื่องดื่มของร้าน"],
-  reports: ["รายงานยอดขาย", "ทุกแก้วที่เสิร์ฟ สู่ภาพรวมการขายของคุณ"],
+  order: ["New Order", "brue rim lay · grab it and go"],
+  menus: ["Menu Management", "Manage drinks, prices and stock"],
+  reports: ["Sales Report", "Every cup served, in one overview"],
 };
 document.querySelectorAll(".nav").forEach(
   (b) =>
@@ -344,14 +344,14 @@ function renderMenus() {
     state.menus
       .map(
         (m) =>
-          `<tr><td>☕ ${escapeHTML(m.name)}</td><td>${escapeHTML(m.categoryName)}</td><td>${money(m.price)}</td><td>${m.stockQuantity === 0 ? "หมด" : m.stockQuantity}</td><td><button data-edit="${m.menuId}">แก้ไข</button><button class="delete" data-delete="${m.menuId}">ลบ</button></td></tr>`,
+          `<tr><td>☕ ${escapeHTML(m.name)}</td><td>${escapeHTML(m.categoryName)}</td><td>${money(m.price)}</td><td>${m.stockQuantity === 0 ? "Sold out" : m.stockQuantity}</td><td><button data-edit="${m.menuId}">Edit</button><button class="delete" data-delete="${m.menuId}">Delete</button></td></tr>`,
       )
       .join("") ||
-    '<tr><td colspan="5">ยังไม่มีเมนู เพิ่มเมนูใหม่เพื่อเริ่มใช้งาน</td></tr>';
+    '<tr><td colspan="5">No menu items yet. Add one to get started.</td></tr>';
 }
 function openMenuForm(menu) {
   editingId = menu?.menuId || null;
-  $("#form-title").textContent = menu ? "แก้ไขเมนู" : "เพิ่มเมนูใหม่";
+  $("#form-title").textContent = menu ? "Edit Menu Item" : "Add Menu Item";
   $("#menu-name").value = menu?.name || "";
   $("#menu-category").value = String(
     menu?.categoryId || state.categories[0]?.categoryId || "",
@@ -366,13 +366,13 @@ $("#menu-table").onclick = async (e) => {
   if (!b) return;
   if (b.dataset.edit)
     openMenuForm(state.menus.find((m) => m.menuId === Number(b.dataset.edit)));
-  else if (b.dataset.delete && confirm("ต้องการลบเมนูนี้หรือไม่?")) {
+  else if (b.dataset.delete && confirm("Delete this menu item?")) {
     try {
       await api(
         "DELETE",
         `/api/menu/${b.dataset.delete}?branchId=${state.branchId}`,
       );
-      toast("ลบเมนูเรียบร้อย");
+      toast("Menu item deleted");
     } catch (err) {
       toast(err.message);
     }
@@ -392,7 +392,7 @@ $("#menu-form").onsubmit = async (e) => {
     !Number.isInteger(stockQuantity) ||
     stockQuantity < 0
   ) {
-    toast("กรุณาตรวจสอบชื่อ ราคา และจำนวนสต็อก");
+    toast("Please check the name, price and stock");
     return;
   }
   const body = {
@@ -406,10 +406,10 @@ $("#menu-form").onsubmit = async (e) => {
     if (editingId) {
       await api("PUT", `/api/menu/${editingId}`, body);
       cart = cart.filter((i) => i.menuId !== editingId);
-      toast("บันทึกแล้ว กรุณาเพิ่มเมนูที่แก้ไขในออร์เดอร์อีกครั้ง");
+      toast("Saved. Please add the edited item to the order again");
     } else {
       await api("POST", "/api/menu", body);
-      toast("เพิ่มเมนูเรียบร้อย");
+      toast("Menu item added");
     }
   } catch (err) {
     toast(err.message);
@@ -419,7 +419,7 @@ $("#menu-form").onsubmit = async (e) => {
   await loadMenus();
 };
 async function loadReports() {
-  $("#report-branch").textContent = "· สาขา " + branchName();
+  $("#report-branch").textContent = "· " + branchName();
   let sales, orders;
   try {
     [sales, orders] = await Promise.all([
@@ -445,14 +445,14 @@ async function loadReports() {
         (row) =>
           `<tr><td>${escapeHTML(row.name)}</td><td>${row.totalQuantity}</td><td>${money(row.totalSales)}</td></tr>`,
       )
-      .join("") || '<tr><td colspan="3">ยังไม่มียอดขายในสาขานี้</td></tr>';
+      .join("") || '<tr><td colspan="3">No sales in this branch yet</td></tr>';
   $("#history").innerHTML =
     orders
       .map(
         (o) =>
-          `<div class="history-row"><div><strong>#${o.orderId}</strong><small>${new Date(o.createdAt).toLocaleString("th-TH")} · ${paymentLabels[o.paymentMethod] || escapeHTML(o.paymentMethod)}</small></div><strong>฿${money(o.totalAmount)}</strong><button class="secondary" data-receipt="${o.orderId}">ใบเสร็จ</button></div>`,
+          `<div class="history-row"><div><strong>#${o.orderId}</strong><small>${new Date(o.createdAt).toLocaleString("en-GB")} · ${paymentLabels[o.paymentMethod] || escapeHTML(o.paymentMethod)}</small></div><strong>฿${money(o.totalAmount)}</strong><button class="secondary" data-receipt="${o.orderId}">Receipt</button></div>`,
       )
-      .join("") || '<p class="empty">ออร์เดอร์ที่ยืนยันแล้วจะแสดงที่นี่</p>';
+      .join("") || '<p class="empty">Confirmed orders will appear here</p>';
 }
 $("#refresh-report").onclick = loadReports;
 $("#history").onclick = async (e) => {
@@ -478,7 +478,7 @@ $("#history").onclick = async (e) => {
     toast(err.message);
   }
 };
-$("#today").textContent = new Date().toLocaleDateString("th-TH", {
+$("#today").textContent = new Date().toLocaleDateString("en-GB", {
   day: "numeric",
   month: "long",
   year: "numeric",

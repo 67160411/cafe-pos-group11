@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="th">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -19,23 +19,23 @@
         ><span>brue rim lay<small>BANGSAEN SPEED CAFE</small></span></a
       >
       <div class="branch">
-        <label for="branch-select">สาขาที่ให้บริการ</label
-        ><select id="branch-select" aria-label="เลือกสาขา"></select
-        ><small id="branch-status">กำลังเชื่อมต่อระบบ…</small>
+        <label for="branch-select">Branch</label
+        ><select id="branch-select" aria-label="Select branch"></select
+        ><small id="branch-status">Connecting…</small>
       </div>
-      <nav aria-label="เมนูหลัก">
+      <nav aria-label="Main menu">
         <button class="nav active" data-page="order">
-          ▦ <span>รายการสั่งซื้อ</span></button
+          ▦ <span>New Order</span></button
         ><button class="nav" data-page="menus">
-          ☷ <span>จัดการเมนู</span></button
+          ☷ <span>Menu Management</span></button
         ><button class="nav" data-page="reports">
-          ▥ <span>รายงานยอดขาย</span>
+          ▥ <span>Sales Report</span>
         </button>
       </nav>
       <div class="sidebar-bottom">
         <div class="avatar">br</div>
         <div>
-          <strong id="employee-name">พนักงานหน้าร้าน</strong
+          <strong id="employee-name">Cashier</strong
           ><small id="employee-branch"></small>
         </div>
       </div>
@@ -44,8 +44,8 @@
       <header>
         <div>
           <span class="eyebrow">BANGSAEN NIGHT RUN · COFFEE BY THE SEA</span>
-          <h1 id="page-title">รายการสั่งซื้อใหม่</h1>
-          <p id="page-subtitle">brue rim lay · กินแล้วเสร็จ</p>
+          <h1 id="page-title">New Order</h1>
+          <p id="page-subtitle">brue rim lay · grab it and go</p>
         </div>
         <div class="date" id="today"></div>
       </header>
@@ -53,44 +53,44 @@
         <div class="order-layout">
           <div class="catalog">
             <div class="catalog-toolbar">
-              <h2>เมนูเครื่องดื่ม <span id="menu-count"></span></h2>
+              <h2>Drinks <span id="menu-count"></span></h2>
               <label class="search"
                 ><span>⌕</span
                 ><input
                   id="search"
                   type="search"
-                  placeholder="ค้นหาเมนูเครื่องดื่ม…"
-                  aria-label="ค้นหาเมนู"
+                  placeholder="Search drinks…"
+                  aria-label="Search menu"
               /></label>
             </div>
             <div class="filters" id="filters"></div>
             <div class="product-grid" id="products"></div>
             <div class="catalog-note">
-              🏁 brue rim lay — เติมกาแฟให้เต็มถัง แล้วซิ่งเลียบหาดบางแสน 🌊
+              🏁 brue rim lay — fill up the tank, then cruise along Bangsaen beach 🌊
             </div>
           </div>
           <aside class="cart-panel">
             <div class="cart-heading">
               <div>
                 <span class="eyebrow">PIT STOP · CURRENT ORDER</span>
-                <h2>รายการที่เลือก <span id="cart-count">0</span></h2>
+                <h2>Current Order <span id="cart-count">0</span></h2>
               </div>
-              <button id="clear-cart" class="text-button">ล้างรายการ</button>
+              <button id="clear-cart" class="text-button">Clear</button>
             </div>
             <div class="order-type">
-              ● รับที่ร้าน <span>ออร์เดอร์ใหม่</span>
+              ● Dine-in <span>New order</span>
             </div>
             <div id="cart-items" class="cart-items"></div>
             <div class="checkout">
               <div class="total">
-                <span>ยอดรวมทั้งหมด</span><strong id="total">฿0.00</strong>
+                <span>Total</span><strong id="total">฿0.00</strong>
               </div>
               <fieldset>
-                <legend>วิธีชำระเงิน</legend>
+                <legend>Payment method</legend>
                 <div class="payment-options">
                   <label
                     ><input type="radio" name="payment" value="cash" />
-                    เงินสด</label
+                    Cash</label
                   ><label
                     ><input type="radio" name="payment" value="qr" /> QR
                     Code</label
@@ -98,7 +98,7 @@
                 </div>
               </fieldset>
               <label id="cash-field" hidden
-                >รับเงินมา (บาท)<input
+                >Cash received (THB)<input
                   type="number"
                   id="cash-received"
                   min="0"
@@ -108,9 +108,9 @@
               <div class="change" id="change"></div>
               <p class="error" id="order-error" role="alert"></p>
               <button id="checkout" class="primary checkout-button">
-                ยืนยันการสั่งซื้อ <span>→</span></button
+                Confirm order <span>→</span></button
               ><small class="payment-note"
-                >ระบบตัวอย่าง • ไม่รับชำระเงินจริง</small
+                >Demo system • no real payment</small
               >
             </div>
           </aside>
@@ -118,18 +118,18 @@
       </section>
       <section id="menus-page" class="page" hidden>
         <div class="section-toolbar">
-          <h2>รายการเมนูทั้งหมด</h2>
-          <button id="add-menu" class="primary">+ เพิ่มเมนูใหม่</button>
+          <h2>All Menu Items</h2>
+          <button id="add-menu" class="primary">+ Add menu item</button>
         </div>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>เมนู</th>
-                <th>หมวดหมู่</th>
-                <th>ราคา / บาท</th>
-                <th>สต็อก / แก้ว</th>
-                <th>จัดการ</th>
+                <th>Menu</th>
+                <th>Category</th>
+                <th>Price / THB</th>
+                <th>Stock / cups</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody id="menu-table"></tbody>
@@ -138,62 +138,62 @@
       </section>
       <section id="reports-page" class="page" hidden>
         <div class="section-toolbar">
-          <h2>ภาพรวมยอดขาย <span id="report-branch"></span></h2>
-          <button id="refresh-report" class="secondary">รีเฟรช</button>
+          <h2>Sales Overview <span id="report-branch"></span></h2>
+          <button id="refresh-report" class="secondary">Refresh</button>
         </div>
         <div class="stats">
           <article>
-            <span>ยอดขายรวม</span><strong id="sales-total"></strong
-            ><small>บาท</small>
+            <span>Total sales</span><strong id="sales-total"></strong
+            ><small>THB</small>
           </article>
           <article>
-            <span>จำนวนออร์เดอร์</span><strong id="sales-orders"></strong
-            ><small>รายการ</small>
+            <span>Orders</span><strong id="sales-orders"></strong
+            ><small>orders</small>
           </article>
           <article>
-            <span>เครื่องดื่มที่ขาย</span><strong id="sales-cups"></strong
-            ><small>แก้ว</small>
+            <span>Drinks sold</span><strong id="sales-cups"></strong
+            ><small>cups</small>
           </article>
         </div>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>เมนู</th>
-                <th>จำนวนที่ขาย</th>
-                <th>ยอดขาย / บาท</th>
+                <th>Menu</th>
+                <th>Quantity sold</th>
+                <th>Sales / THB</th>
               </tr>
             </thead>
             <tbody id="sales-table"></tbody>
           </table>
         </div>
-        <h2 class="history-heading">ประวัติการขาย</h2>
+        <h2 class="history-heading">Sales History</h2>
         <div id="history"></div>
       </section>
       <footer>
-        brue rim lay 🏁 <span>full throttle coffee · บางแสน ชลบุรี</span>
+        brue rim lay 🏁 <span>full throttle coffee · Bangsaen, Chonburi</span>
       </footer>
     </main>
     <dialog id="menu-dialog">
       <form id="menu-form">
         <div class="dialog-heading">
-          <h2 id="form-title">เพิ่มเมนูใหม่</h2>
-          <button type="button" class="close-dialog" aria-label="ปิด">×</button>
+          <h2 id="form-title">Add Menu Item</h2>
+          <button type="button" class="close-dialog" aria-label="Close">×</button>
         </div>
-        <label>ชื่อเมนู<input id="menu-name" required maxlength="100" /></label
+        <label>Name<input id="menu-name" required maxlength="100" /></label
         ><label
-          >หมวดหมู่<select id="menu-category"></select></label
+          >Category<select id="menu-category"></select></label
         >
         <div class="form-row">
           <label
-            >ราคา (บาท)<input
+            >Price (THB)<input
               id="menu-price"
               type="number"
               min="0.01"
               step="0.01"
               required /></label
           ><label
-            >สต็อก (แก้ว)<input
+            >Stock (cups)<input
               id="menu-stock"
               type="number"
               min="0"
@@ -201,14 +201,14 @@
               required
           /></label>
         </div>
-        <button class="primary" type="submit">บันทึกเมนู</button>
+        <button class="primary" type="submit">Save</button>
       </form>
     </dialog>
     <dialog id="receipt-dialog">
       <div id="receipt"></div>
       <div class="receipt-actions">
-        <button id="print" class="primary">พิมพ์ใบเสร็จ</button
-        ><button class="secondary close-dialog">ปิด</button>
+        <button id="print" class="primary">Print receipt</button
+        ><button class="secondary close-dialog">Close</button>
       </div>
     </dialog>
     <div id="toast" role="status"></div>
