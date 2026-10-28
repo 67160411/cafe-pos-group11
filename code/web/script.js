@@ -17,6 +17,9 @@ const escapeHTML = (value) =>
 // ต้องตรงกับ LOW_STOCK_THRESHOLD ใน src/models/menuModel.js
 const LOW_STOCK_THRESHOLD = 10;
 const paymentLabels = { cash: "Cash", qr: "QR Code", card: "Card" };
+// เบอร์มือถือ (10 หลัก) หรือเลขผู้เสียภาษี (13 หลัก) ของร้านสำหรับรับเงิน PromptPay
+// ปล่อยว่างไว้ = แสดง Demo QR ที่เก็บเลขออเดอร์และยอดเงินแทน (สแกนจ่ายไม่ได้)
+const PROMPTPAY_ID = "";
 const drinkColors = [
   { color: "#75503b", bg: "#e8e6d9" },
   { color: "#8d9c64", bg: "#e4ebd6" },
@@ -307,13 +310,54 @@ $("#checkout").onclick = async () => {
   await loadMenus();
   loadReports();
 };
+// CRC-16/CCITT-FALSE ตามมาตรฐาน EMVCo QR
+function crc16(text) {
+  let crc = 0xffff;
+  for (let i = 0; i < text.length; i++) {
+    crc ^= text.charCodeAt(i) << 8;
+    for (let bit = 0; bit < 8; bit++)
+      crc = crc & 0x8000 ? ((crc << 1) ^ 0x1021) & 0xffff : (crc << 1) & 0xffff;
+  }
+  return crc.toString(16).toUpperCase().padStart(4, "0");
+}
+// payload PromptPay แบบระบุยอดเงิน (Thai QR Payment / EMVCo)
+function promptPayPayload(id, amount) {
+  const field = (tag, value) => tag + String(value.length).padStart(2, "0") + value;
+  const digits = id.replace(/\D/g, "");
+  const account =
+    digits.length === 13
+      ? field("02", digits)
+      : field("01", ("0000000000000" + digits.replace(/^0/, "66")).slice(-13));
+  const body =
+    field("00", "01") +
+    field("01", "12") +
+    field("29", field("00", "A000000677010111") + account) +
+    field("58", "TH") +
+    field("53", "764") +
+    field("54", Number(amount).toFixed(2)) +
+    "6304";
+  return body + crc16(body);
+}
+function paymentQr(order) {
+  // โหลดไลบรารีไม่ได้ ก็ยังแสดงใบเสร็จได้ตามปกติ
+  if (order.payment !== "qr" || typeof qrcode !== "function") return "";
+  const promptPay = PROMPTPAY_ID.replace(/\D/g, "").length >= 10;
+  const qr = qrcode(0, "M");
+  qr.addData(
+    promptPay
+      ? promptPayPayload(PROMPTPAY_ID, order.total)
+      : `brue rim lay | ${branchName()} | Order #${order.orderId} | ${Number(order.total).toFixed(2)} THB`,
+  );
+  qr.make();
+  return `<div class="receipt-qr">${qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true })}<small>${promptPay ? "Scan to pay with PromptPay" : "Demo QR · not a real payment"} · ฿${money(order.total)}</small></div>`;
+}
 function showReceipt(order) {
   const paid =
     order.received === undefined
       ? ""
       : `<br>Received: ฿${money(order.received)}<br>Change: ฿${money(order.change)}`;
   $("#receipt").innerHTML =
-    `<div class="receipt-brand">🌿 brue rim lay Coffee</div><div class="receipt-sub">Receipt · ${escapeHTML(branchName())} branch</div><div class="receipt-info">No. #${escapeHTML(order.orderId)}<br>${new Date(order.date).toLocaleString("en-GB")}<br>Cashier: ${escapeHTML(state.employee?.name || "-")}</div><div class="receipt-lines">${order.items.map((i) => `<div class="receipt-line"><span>${escapeHTML(i.name)} × ${i.qty}<small>฿${money(i.price)} / cup</small></span><span>฿${money(i.price * i.qty)}</span></div>`).join("")}</div><div class="receipt-total"><span>Total</span><span>฿${money(order.total)}</span></div><div class="receipt-info">Paid by: ${paymentLabels[order.payment] || escapeHTML(order.payment)}${paid}</div><div class="receipt-thanks">Thanks for being part of our day ♡<small>Demo system receipt</small></div>`;
+    `<div class="receipt-brand">🌿 brue rim lay Coffee</div><div class="receipt-sub">Receipt · ${escapeHTML(branchName())} branch</div><div class="receipt-info">No. #${escapeHTML(order.orderId)}<br>${new Date(order.date).toLocaleString("en-GB")}<br>Cashier: ${escapeHTML(state.employee?.name || "-")}</div><div class="receipt-lines">${order.items.map((i) => `<div class="receipt-line"><span>${escapeHTML(i.name)} × ${i.qty}<small>฿${money(i.price)} / cup</small></span><span>฿${money(i.price * i.qty)}</span></div>`).join("")}</div><div class="receipt-total"><span>Total</span><span>฿${money(order.total)}</span></div><div class="receipt-info">Paid by: ${paymentLabels[order.payment] || escapeHTML(order.payment)}${paid}</div>${paymentQr(order)}<div class="receipt-thanks">Thanks for being part of our day ♡<small>Demo system receipt</small></div>`;
   $("#receipt-dialog").showModal();
 }
 $("#print").onclick = () => window.print();

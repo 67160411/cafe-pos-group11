@@ -1043,6 +1043,24 @@ form > .primary {
   margin-top: 25px;
   font-size: 12px;
 }
+.receipt-qr {
+  margin-top: 18px;
+  text-align: center;
+}
+/* QR ต้องอยู่บนพื้นขาวถึงจะสแกนได้ แม้ใบเสร็จเป็นธีมมืด */
+.receipt-qr svg {
+  display: block;
+  width: 160px;
+  height: 160px;
+  margin: 0 auto 8px;
+  padding: 6px;
+  background: #fff;
+  border-radius: 8px;
+}
+.receipt-qr small {
+  font-size: 11px;
+  color: var(--muted);
+}
 .receipt-actions {
   display: flex;
   gap: 10px;
