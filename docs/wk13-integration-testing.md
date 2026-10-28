@@ -51,7 +51,7 @@
 
 **การทดสอบเพิ่มเติมหลังแก้ bug** (เรียก API โดยตรง): เพิ่ม/แก้หมวดหมู่และราคา/ลบเมนูผ่าน `/api/menu` ทำงานถูกต้อง · ขอเมนูของสาขา A โดยระบุ `branchId=2` ได้ 404 · ลบเมนูที่มีประวัติขายได้ 409 · `createdAt` ของออเดอร์ใหม่ตรงกับเวลาจริง (ตรวจหลังแก้ BUG-07) · หน้าจอกว้าง 1400 / 800 / 390 px เลือกสาขาได้และไม่มี horizontal scroll
 
-> **ยังไม่ครอบคลุม:** test case นี้ยังไม่มี assertion สำหรับ use case ย่อยที่ `<<include>>` ใน Use Case Diagram ของกลุ่ม (หัวข้อ 2.2) เพราะ `docs/wk04-userstories-usecasediagram.md` เพิ่งถูกรวมเข้า `main` หลังการทดสอบรอบนี้ — ให้สมาชิกที่ดูแล Use Case Diagram เพิ่ม assertion ให้ครบ การทดสอบ concurrency อยู่นอกขอบเขตตาม wk09
+> **ยังไม่ครอบคลุม:** test case นี้ยังไม่มี assertion สำหรับ use case ย่อยที่ `<<include>>` ใน Use Case Diagram ของกลุ่ม (หัวข้อ 2.2) เพราะ `docs/wk04-user-stories.md` เพิ่งถูกรวมเข้า `main` หลังการทดสอบรอบนี้ — ให้สมาชิกที่ดูแล Use Case Diagram เพิ่ม assertion ให้ครบ การทดสอบ concurrency อยู่นอกขอบเขตตาม wk09
 
 ## 4. Bug ที่พบและการแก้ไข (Reproduce → Isolate → Fix & Verify)
 
