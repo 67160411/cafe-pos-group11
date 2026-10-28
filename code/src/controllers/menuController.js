@@ -146,7 +146,7 @@ exports.updateMenu = async (req, res) => {
   const body = req.body || {};
   const branchId = parseId(body.branchId);
   const menuId = parseId(req.params.id);
-  const { name, price, stockQuantity } = body;
+  const { name, price, stockQuantity, expectedStockQuantity } = body;
   const categoryId =
     body.categoryId === undefined ? undefined : parseId(body.categoryId);
 
@@ -192,21 +192,40 @@ exports.updateMenu = async (req, res) => {
     });
   }
 
+  // ตั้งสต็อกเป็นค่าใหม่ต้องส่งสต็อกที่เห็นตอนเปิดฟอร์มมาด้วย
+  // กันเขียนทับยอดที่ขายไประหว่างแก้ไข (lost update)
+  if (stockQuantity !== undefined && !validStock(expectedStockQuantity)) {
+    return res.status(400).json({
+      error: "expectedStockQuantity is required when changing stockQuantity",
+    });
+  }
+
   try {
     const affectedRows = await menuModel.updateFields(menuId, branchId, {
       categoryId,
       name: name === undefined ? undefined : name.trim(),
       price,
       stockQuantity,
+      expectedStockQuantity:
+        stockQuantity === undefined ? undefined : expectedStockQuantity,
     });
 
-    // ส่งค่าเดิมซ้ำก็ถือว่าแก้ไขสำเร็จ ถ้าเมนูยังมีอยู่
+    // ส่งค่าเดิมซ้ำก็ถือว่าแก้ไขสำเร็จ ถ้าเมนูยังมีอยู่และสต็อกไม่ถูกเปลี่ยนระหว่างนั้น
     if (affectedRows === 0) {
       const menu = await menuModel.findByIdAndBranch(menuId, branchId);
 
       if (!menu) {
         return res.status(404).json({
           error: "Menu item not found in this branch",
+        });
+      }
+
+      if (
+        stockQuantity !== undefined &&
+        menu.stockQuantity !== expectedStockQuantity
+      ) {
+        return res.status(409).json({
+          error: `Stock changed to ${menu.stockQuantity} while editing, please check and save again`,
         });
       }
     }

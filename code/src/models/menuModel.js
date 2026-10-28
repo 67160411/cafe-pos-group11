@@ -94,10 +94,11 @@ exports.create = async (
 };
 
 // แก้ไขเฉพาะฟิลด์ที่ส่งมา
+// ถ้าส่ง expectedStockQuantity จะแก้เฉพาะเมื่อสต็อกปัจจุบันยังเท่าเดิม (compare-and-set ใน UPDATE เดียว)
 exports.updateFields = async (
   menuId,
   branchId,
-  { categoryId, name, price, stockQuantity },
+  { categoryId, name, price, stockQuantity, expectedStockQuantity },
 ) => {
   const [result] = await db.query(
     `UPDATE menu_item
@@ -105,7 +106,8 @@ exports.updateFields = async (
          name = COALESCE(?, name),
          price = COALESCE(?, price),
          stock_quantity = COALESCE(?, stock_quantity)
-     WHERE menu_id = ? AND branch_id = ?`,
+     WHERE menu_id = ? AND branch_id = ?
+       AND (? IS NULL OR stock_quantity = ?)`,
     [
       categoryId ?? null,
       name ?? null,
@@ -113,6 +115,8 @@ exports.updateFields = async (
       stockQuantity ?? null,
       menuId,
       branchId,
+      expectedStockQuantity ?? null,
+      expectedStockQuantity ?? null,
     ],
   );
 

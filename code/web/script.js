@@ -49,6 +49,7 @@ const state = {
 let cart = [];
 let category = "all";
 let editingId = null;
+let editingStock = null;
 let toastTimer;
 
 function toast(message) {
@@ -395,6 +396,7 @@ function renderMenus() {
 }
 function openMenuForm(menu) {
   editingId = menu?.menuId || null;
+  editingStock = menu?.stockQuantity ?? null;
   $("#form-title").textContent = menu ? "Edit Menu Item" : "Add Menu Item";
   $("#menu-name").value = menu?.name || "";
   $("#menu-category").value = String(
@@ -448,6 +450,9 @@ $("#menu-form").onsubmit = async (e) => {
   };
   try {
     if (editingId) {
+      // ส่งสต็อกเฉพาะเมื่อแก้จริง พร้อมค่าที่เห็นตอนเปิดฟอร์ม ให้ server ตรวจว่าไม่มีการขายแทรก
+      if (stockQuantity === editingStock) delete body.stockQuantity;
+      else body.expectedStockQuantity = editingStock;
       await api("PUT", `/api/menu/${editingId}`, body);
       cart = cart.filter((i) => i.menuId !== editingId);
       toast("Saved. Please add the edited item to the order again");
@@ -457,6 +462,12 @@ $("#menu-form").onsubmit = async (e) => {
     }
   } catch (err) {
     toast(err.message);
+    // สต็อกอาจถูกขายไประหว่างแก้ไข โหลดค่าล่าสุดไว้เทียบในการบันทึกครั้งถัดไป
+    if (editingId) {
+      await loadMenus();
+      const fresh = state.menus.find((m) => m.menuId === editingId);
+      if (fresh) editingStock = fresh.stockQuantity;
+    }
     return;
   }
   $("#menu-dialog").close();

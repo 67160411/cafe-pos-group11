@@ -23,7 +23,7 @@
 | `GET /api/categories` | – | `[{ categoryId, name }]` | 500 |
 | `GET /api/menu?branchId=` | – | `[{ menuId, branchId, categoryId, categoryName, name, price: number, stockQuantity }]` | 400 |
 | `POST /api/menu` | `{ branchId, categoryId, name, price, stockQuantity }` | `201 { menuId }` | 400, 409 |
-| `PUT /api/menu/:id` | `{ branchId, categoryId?, name?, price?, stockQuantity? }` | `{ updated: true }` | 400, 404 |
+| `PUT /api/menu/:id` | `{ branchId, categoryId?, name?, price?, stockQuantity?, expectedStockQuantity? }` (ส่ง `stockQuantity` ต้องส่ง `expectedStockQuantity` ด้วย — เพิ่มใน wk14) | `{ updated: true }` | 400, 404, 409 (สต็อกถูกเปลี่ยนระหว่างแก้ไข) |
 | `DELETE /api/menu/:id?branchId=` | – | `{ deleted: true }` | 404, 409 (มีประวัติขาย) |
 | `POST /api/orders` | `{ branchId, employeeId, paymentMethod: "cash"\|"qr"\|"card", items: [{ menuId, quantity }] }` | `201 { orderId, totalAmount: number, lowStockMenuIds }` | `400 { error }` เช่น สต็อกไม่พอ |
 | `GET /api/orders/:order_id?branchId=` | – | `{ orderId, branchId, employeeId, paymentMethod, createdAt, items: [{ menuId, menuName, quantity, unitPrice, subtotal }], totalAmount }` | 400, 404 |
