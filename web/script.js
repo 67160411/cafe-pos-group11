@@ -13,144 +13,144 @@ const escapeHTML = (value) =>
         char
       ],
   );
-const initialMenus = [
-  {
-    id: "americano",
-    name: "Americano",
-    thai: "อเมริกาโน",
-    category: "coffee",
-    price: 60,
-    stock: 40,
-    color: "#75503b",
-    bg: "#e8e6d9",
-  },
-  {
-    id: "latte",
-    name: "Latte",
-    thai: "ลาเต้",
-    category: "coffee",
-    price: 65,
-    stock: 24,
-    color: "#be946b",
-    bg: "#eee6d7",
-  },
-  {
-    id: "cappuccino",
-    name: "Cappuccino",
-    thai: "คาปูชิโน",
-    category: "coffee",
-    price: 65,
-    stock: 8,
-    color: "#aa805b",
-    bg: "#e5e9dd",
-  },
-  {
-    id: "mocha",
-    name: "Mocha",
-    thai: "มอคค่า",
-    category: "coffee",
-    price: 70,
-    stock: 20,
-    color: "#825b48",
-    bg: "#ede2d8",
-  },
-  {
-    id: "matcha",
-    name: "Matcha Latte",
-    thai: "มัทฉะลาเต้",
-    category: "tea",
-    price: 95,
-    stock: 50,
-    color: "#8d9c64",
-    bg: "#e4ebd6",
-  },
-  {
-    id: "chocolate",
-    name: "Chocolate",
-    thai: "ช็อกโกแลต",
-    category: "other",
-    price: 70,
-    stock: 40,
-    color: "#77503d",
-    bg: "#e9dfd5",
-  },
-  {
-    id: "lemon",
-    name: "Lemon Tea",
-    thai: "ชามะนาว",
-    category: "tea",
-    price: 65,
-    stock: 30,
-    color: "#bb7b32",
-    bg: "#f1ead5",
-  },
-  {
-    id: "espresso",
-    name: "Espresso",
-    thai: "เอสเปรสโซ",
-    category: "coffee",
-    price: 55,
-    stock: 15,
-    color: "#563f31",
-    bg: "#e3e5da",
-  },
-  {
-    id: "iced-americano",
-    name: "Iced Americano",
-    thai: "อเมริกาโนเย็น",
-    category: "coffee",
-    price: 65,
-    stock: 0,
-    color: "#624637",
-    bg: "#e5e6df",
-  },
+
+// ต้องตรงกับ LOW_STOCK_THRESHOLD ใน src/models/menuModel.js
+const LOW_STOCK_THRESHOLD = 10;
+const paymentLabels = { cash: "เงินสด", qr: "QR Code", card: "บัตร" };
+const drinkColors = [
+  { color: "#75503b", bg: "#e8e6d9" },
+  { color: "#8d9c64", bg: "#e4ebd6" },
+  { color: "#77503d", bg: "#e9dfd5" },
+  { color: "#bb7b32", bg: "#f1ead5" },
 ];
-let storageAvailable = true;
-function loadState() {
-  try {
-    const raw = localStorage.getItem("baimai-pos-v1");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (
-        Array.isArray(parsed.menus) &&
-        Array.isArray(parsed.orders) &&
-        parsed.menus.every(
-          (m) =>
-            typeof m.id === "string" &&
-            typeof m.name === "string" &&
-            Number.isFinite(m.price) &&
-            m.price > 0 &&
-            Number.isInteger(m.stock) &&
-            m.stock >= 0,
-        )
-      )
-        return parsed;
-    }
-  } catch {
-    storageAvailable = false;
-  }
-  return { menus: structuredClone(initialMenus), orders: [] };
+
+// ทุกการเรียก API ใช้ JSON แบบ camelCase ตาม API contract
+async function api(method, url, body) {
+  const res = await fetch(url, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `เกิดข้อผิดพลาด (HTTP ${res.status})`);
+  return data;
 }
-let state = loadState();
+
+const state = {
+  branches: [],
+  categories: [],
+  menus: [],
+  branchId: null,
+  employee: null,
+};
 let cart = [];
 let category = "all";
 let editingId = null;
 let toastTimer;
-function save() {
-  try {
-    localStorage.setItem("baimai-pos-v1", JSON.stringify(state));
-  } catch {
-    storageAvailable = false;
-    toast("บันทึกในเบราว์เซอร์ไม่ได้ ข้อมูลจะอยู่เฉพาะรอบนี้");
-  }
-}
+
 function toast(message) {
   $("#toast").textContent = message;
   $("#toast").classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => $("#toast").classList.remove("show"), 2800);
 }
-const categories = { coffee: "กาแฟ", tea: "ชาและมัทฉะ", other: "อื่น ๆ" };
+function branchName() {
+  return state.branches.find((b) => b.branchId === state.branchId)?.name || "";
+}
+function rememberBranch(id) {
+  try {
+    localStorage.setItem("cafe-pos-branch", String(id));
+  } catch {}
+}
+function savedBranch() {
+  try {
+    return Number(localStorage.getItem("cafe-pos-branch"));
+  } catch {
+    return null;
+  }
+}
+
+async function init() {
+  try {
+    [state.branches, state.categories] = await Promise.all([
+      api("GET", "/api/branches"),
+      api("GET", "/api/categories"),
+    ]);
+  } catch (err) {
+    $("#branch-status").textContent = "เชื่อมต่อ server ไม่ได้";
+    $("#branch-status").classList.add("offline");
+    toast(err.message);
+    return;
+  }
+  $("#branch-select").innerHTML = state.branches
+    .map((b) => `<option value="${b.branchId}">${escapeHTML(b.name)}</option>`)
+    .join("");
+  $("#menu-category").innerHTML = state.categories
+    .map(
+      (c) => `<option value="${c.categoryId}">${escapeHTML(c.name)}</option>`,
+    )
+    .join("");
+  renderFilters();
+  const saved = savedBranch();
+  await selectBranch(
+    state.branches.some((b) => b.branchId === saved)
+      ? saved
+      : state.branches[0]?.branchId,
+  );
+}
+
+async function selectBranch(id) {
+  if (!id) return;
+  state.branchId = id;
+  $("#branch-select").value = String(id);
+  rememberBranch(id);
+  // ตะกร้าผูกกับเมนูของสาขาเดิม จึงต้องล้างเมื่อเปลี่ยนสาขา
+  cart = [];
+  $("#order-error").textContent = "";
+  try {
+    const employees = await api("GET", `/api/branches/${id}/employees`);
+    state.employee = employees[0] || null;
+    $("#employee-name").textContent =
+      state.employee?.name || "ไม่พบพนักงานในสาขานี้";
+    $("#employee-branch").textContent = "สาขา" + branchName();
+    $("#branch-status").innerHTML = "พร้อมรับออร์เดอร์ <i></i>";
+    $("#branch-status").classList.remove("offline");
+  } catch (err) {
+    toast(err.message);
+  }
+  await loadMenus();
+  await loadReports();
+}
+$("#branch-select").onchange = (e) => selectBranch(Number(e.target.value));
+
+async function loadMenus() {
+  try {
+    state.menus = await api("GET", `/api/menu?branchId=${state.branchId}`);
+  } catch (err) {
+    state.menus = [];
+    toast(err.message);
+  }
+  // ตัดรายการในตะกร้าที่เมนูถูกลบหรือสต็อกไม่พอแล้ว
+  cart = cart
+    .map((i) => {
+      const m = state.menus.find((menu) => menu.menuId === i.menuId);
+      return m ? { ...i, qty: Math.min(i.qty, m.stockQuantity) } : null;
+    })
+    .filter((i) => i && i.qty > 0);
+  renderCart();
+  renderMenus();
+}
+
+function renderFilters() {
+  $("#filters").innerHTML =
+    `<button class="${category === "all" ? "selected" : ""}" data-category="all">ทั้งหมด</button>` +
+    state.categories
+      .map(
+        (c) =>
+          `<button class="${category === c.categoryId ? "selected" : ""}" data-category="${c.categoryId}">${escapeHTML(c.name)}</button>`,
+      )
+      .join("");
+}
 function cartTotal() {
   return cart.reduce((sum, item) => sum + item.price * item.qty, 0);
 }
@@ -158,22 +158,22 @@ function renderProducts() {
   const search = $("#search").value.trim().toLowerCase();
   const menus = state.menus.filter(
     (m) =>
-      (category === "all" || m.category === category) &&
-      (m.name + " " + (m.thai || "")).toLowerCase().includes(search),
+      (category === "all" || m.categoryId === category) &&
+      (m.name + " " + m.categoryName).toLowerCase().includes(search),
   );
   $("#menu-count").textContent = `${state.menus.length} เมนู`;
   $("#products").innerHTML = menus.length
     ? menus
         .map((m) => {
+          const look = drinkColors[(m.categoryId - 1) % drinkColors.length];
           const remaining =
-            m.stock - (cart.find((i) => i.id === m.id)?.qty || 0);
-          return `<article class="product"><div class="drink-art" style="--drink-bg:${safeColor(m.bg, "#e8e6d9")};--drink-color:${safeColor(m.color, "#a87345")}"><div class="cup" aria-hidden="true"></div><span class="stock-badge ${remaining <= 8 ? "low" : ""}">${remaining === 0 ? "หมดชั่วคราว" : `เหลือ ${remaining} แก้ว`}</span></div><h3>${escapeHTML(m.name)}</h3><p class="thai-name">${escapeHTML(m.thai || categories[m.category] || "เครื่องดื่ม")}</p><div class="product-bottom"><span class="price">฿${money(m.price)} <small>/ แก้ว</small></span><button class="add-product" data-add="${escapeHTML(m.id)}" aria-label="เพิ่ม ${escapeHTML(m.name)}" ${remaining <= 0 ? "disabled" : ""}>+</button></div></article>`;
+            m.stockQuantity -
+            (cart.find((i) => i.menuId === m.menuId)?.qty || 0);
+          // FR-09: เมนูที่หมด (หรือหยิบลงตะกร้าครบแล้ว) กดเพิ่มไม่ได้ตั้งแต่หน้าจอเลือกเมนู
+          return `<article class="product${m.stockQuantity === 0 ? " sold-out" : ""}"><div class="drink-art" style="--drink-bg:${look.bg};--drink-color:${look.color}"><div class="cup" aria-hidden="true"></div><span class="stock-badge ${remaining < LOW_STOCK_THRESHOLD ? "low" : ""}">${m.stockQuantity === 0 ? "หมด" : `เหลือ ${remaining} แก้ว`}</span></div><h3>${escapeHTML(m.name)}</h3><p class="thai-name">${escapeHTML(m.categoryName)}</p><div class="product-bottom"><span class="price">฿${money(m.price)} <small>/ แก้ว</small></span><button class="add-product" data-add="${m.menuId}" aria-label="เพิ่ม ${escapeHTML(m.name)}" ${remaining <= 0 ? "disabled" : ""}>+</button></div></article>`;
         })
         .join("")
     : '<p class="empty">ไม่พบเมนูที่ค้นหา</p>';
-}
-function safeColor(value, fallback) {
-  return /^#[0-9a-f]{6}$/i.test(value || "") ? value : fallback;
 }
 function renderCart() {
   $("#cart-count").textContent = cart.reduce((n, i) => n + i.qty, 0);
@@ -181,7 +181,7 @@ function renderCart() {
     ? cart
         .map(
           (i) =>
-            `<div class="cart-item"><div class="mini-cup" aria-hidden="true">☕</div><div class="cart-item-body"><strong>${escapeHTML(i.name)}</strong><small>฿${money(i.price)} / แก้ว</small><div class="item-bottom"><div class="quantity"><button data-qty="${escapeHTML(i.id)}" data-step="-1" aria-label="ลดจำนวน ${escapeHTML(i.name)}">−</button><span>${i.qty}</span><button data-qty="${escapeHTML(i.id)}" data-step="1" aria-label="เพิ่มจำนวน ${escapeHTML(i.name)}">+</button></div><strong>฿${money(i.price * i.qty)}</strong></div></div><button class="remove" data-remove="${escapeHTML(i.id)}" aria-label="ลบ ${escapeHTML(i.name)}">×</button></div>`,
+            `<div class="cart-item"><div class="mini-cup" aria-hidden="true">☕</div><div class="cart-item-body"><strong>${escapeHTML(i.name)}</strong><small>฿${money(i.price)} / แก้ว</small><div class="item-bottom"><div class="quantity"><button data-qty="${i.menuId}" data-step="-1" aria-label="ลดจำนวน ${escapeHTML(i.name)}">−</button><span>${i.qty}</span><button data-qty="${i.menuId}" data-step="1" aria-label="เพิ่มจำนวน ${escapeHTML(i.name)}">+</button></div><strong>฿${money(i.price * i.qty)}</strong></div></div><button class="remove" data-remove="${i.menuId}" aria-label="ลบ ${escapeHTML(i.name)}">×</button></div>`,
         )
         .join("")
     : '<div class="empty"><span class="empty-icon">☕</span>ยังไม่มีรายการที่เลือก<br>เพิ่มเครื่องดื่มแก้วโปรดเพื่อเริ่มออร์เดอร์</div>';
@@ -191,33 +191,35 @@ function renderCart() {
   updateChange();
   renderProducts();
 }
-function addItem(id) {
-  const menu = state.menus.find((m) => m.id === id);
+function addItem(menuId) {
+  const menu = state.menus.find((m) => m.menuId === menuId);
   if (!menu) return;
-  const item = cart.find((i) => i.id === id);
-  if ((item?.qty || 0) >= menu.stock) {
+  const item = cart.find((i) => i.menuId === menuId);
+  if ((item?.qty || 0) >= menu.stockQuantity) {
     toast("จำนวนเกินสต็อกที่มี");
     return;
   }
   if (item) item.qty++;
-  else cart.push({ id: menu.id, name: menu.name, price: menu.price, qty: 1 });
+  else cart.push({ menuId, name: menu.name, price: menu.price, qty: 1 });
   $("#order-error").textContent = "";
   renderCart();
 }
 $("#products").addEventListener("click", (e) => {
   const b = e.target.closest("[data-add]");
-  if (b) addItem(b.dataset.add);
+  if (b) addItem(Number(b.dataset.add));
 });
 $("#cart-items").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
-  if (b.dataset.remove) cart = cart.filter((i) => i.id !== b.dataset.remove);
+  if (b.dataset.remove)
+    cart = cart.filter((i) => i.menuId !== Number(b.dataset.remove));
   else if (b.dataset.qty) {
+    const menuId = Number(b.dataset.qty);
     if (b.dataset.step === "1") {
-      addItem(b.dataset.qty);
+      addItem(menuId);
       return;
     }
-    const item = cart.find((i) => i.id === b.dataset.qty);
+    const item = cart.find((i) => i.menuId === menuId);
     if (item) item.qty--;
     cart = cart.filter((i) => i.qty > 0);
   }
@@ -232,10 +234,8 @@ $("#search").oninput = renderProducts;
 $("#filters").onclick = (e) => {
   const b = e.target.closest("[data-category]");
   if (!b) return;
-  category = b.dataset.category;
-  document
-    .querySelectorAll("#filters button")
-    .forEach((btn) => btn.classList.toggle("selected", btn === b));
+  category = b.dataset.category === "all" ? "all" : Number(b.dataset.category);
+  renderFilters();
   renderProducts();
 };
 function updateChange() {
@@ -255,7 +255,7 @@ document.querySelectorAll('[name="payment"]').forEach(
     }),
 );
 $("#cash-received").oninput = updateChange;
-$("#checkout").onclick = () => {
+$("#checkout").onclick = async () => {
   const payment = $('input[name="payment"]:checked')?.value;
   const total = cartTotal();
   const received = Number($("#cash-received").value);
@@ -267,46 +267,53 @@ $("#checkout").onclick = () => {
     (!Number.isFinite(received) || received < total)
   )
     error = "กรุณาระบุเงินที่รับมาให้เพียงพอกับยอดชำระ";
-  else if (
-    cart.some(
-      (i) =>
-        !state.menus.find((m) => m.id === i.id) ||
-        state.menus.find((m) => m.id === i.id).stock < i.qty,
-    )
-  )
-    error = "สต็อกเปลี่ยนแปลง กรุณาตรวจสอบรายการอีกครั้ง";
+  else if (!state.employee) error = "ไม่พบพนักงานของสาขานี้ในระบบ";
   if (error) {
     $("#order-error").textContent = error;
     return;
   }
-  const order = {
-    id: "BM-" + Date.now().toString(36).toUpperCase(),
-    date: new Date().toISOString(),
-    items: structuredClone(cart),
-    total,
-    payment,
-    received: payment === "cash" ? received : total,
-    change: payment === "cash" ? Math.round((received - total) * 100) / 100 : 0,
-  };
-  order.items.forEach(
-    (i) => (state.menus.find((m) => m.id === i.id).stock -= i.qty),
-  );
-  state.orders.push(order);
-  save();
-  cart = [];
-  $("#cash-received").value = "";
-  document
-    .querySelectorAll('[name="payment"]')
-    .forEach((r) => (r.checked = false));
-  $("#order-error").textContent = "";
-  renderCart();
-  renderMenus();
-  renderReports();
-  showReceipt(order);
+  $("#checkout").disabled = true;
+  try {
+    // ราคาและยอดรวมจริงคำนวณที่ backend จากราคาในฐานข้อมูล
+    const result = await api("POST", "/api/orders", {
+      branchId: state.branchId,
+      employeeId: state.employee.employeeId,
+      paymentMethod: payment,
+      items: cart.map((i) => ({ menuId: i.menuId, quantity: i.qty })),
+    });
+    const order = {
+      orderId: result.orderId,
+      date: new Date().toISOString(),
+      items: cart.map((i) => ({ name: i.name, qty: i.qty, price: i.price })),
+      total: result.totalAmount,
+      payment,
+      received: payment === "cash" ? received : result.totalAmount,
+      change:
+        payment === "cash"
+          ? Math.round((received - result.totalAmount) * 100) / 100
+          : 0,
+    };
+    cart = [];
+    $("#cash-received").value = "";
+    document
+      .querySelectorAll('[name="payment"]')
+      .forEach((r) => (r.checked = false));
+    $("#order-error").textContent = "";
+    showReceipt(order);
+  } catch (err) {
+    // เช่น 400 สต็อกไม่พอ — แสดงข้อความจาก backend ตรง ๆ
+    $("#order-error").textContent = err.message;
+  }
+  await loadMenus();
+  loadReports();
 };
 function showReceipt(order) {
+  const paid =
+    order.received === undefined
+      ? ""
+      : `<br>รับเงิน: ฿${money(order.received)}<br>เงินทอน: ฿${money(order.change)}`;
   $("#receipt").innerHTML =
-    `<div class="receipt-brand">🌿 brue rim lay Coffee</div><div class="receipt-sub">ใบเสร็จรับเงิน · สาขาบางแสน</div><div class="receipt-info">เลขที่ ${escapeHTML(order.id)}<br>${new Date(order.date).toLocaleString("th-TH")}<br>พนักงาน: พนักงานหน้าร้าน</div><div class="receipt-lines">${order.items.map((i) => `<div class="receipt-line"><span>${escapeHTML(i.name)} × ${i.qty}<small>฿${money(i.price)} / แก้ว</small></span><span>฿${money(i.price * i.qty)}</span></div>`).join("")}</div><div class="receipt-total"><span>รวมทั้งหมด</span><span>฿${money(order.total)}</span></div><div class="receipt-info">ชำระโดย: ${order.payment === "cash" ? "เงินสด" : "QR Code (บันทึกเท่านั้น)"}<br>รับเงิน: ฿${money(order.received)}<br>เงินทอน: ฿${money(order.change)}</div><div class="receipt-thanks">ขอบคุณที่ให้เราเป็นส่วนหนึ่งของวันดี ๆ ♡<small>ใบเสร็จจากระบบตัวอย่าง</small></div>`;
+    `<div class="receipt-brand">🌿 brue rim lay Coffee</div><div class="receipt-sub">ใบเสร็จรับเงิน · สาขา${escapeHTML(branchName())}</div><div class="receipt-info">เลขที่ #${escapeHTML(order.orderId)}<br>${new Date(order.date).toLocaleString("th-TH")}<br>พนักงาน: ${escapeHTML(state.employee?.name || "-")}</div><div class="receipt-lines">${order.items.map((i) => `<div class="receipt-line"><span>${escapeHTML(i.name)} × ${i.qty}<small>฿${money(i.price)} / แก้ว</small></span><span>฿${money(i.price * i.qty)}</span></div>`).join("")}</div><div class="receipt-total"><span>รวมทั้งหมด</span><span>฿${money(order.total)}</span></div><div class="receipt-info">ชำระโดย: ${paymentLabels[order.payment] || escapeHTML(order.payment)}${paid}</div><div class="receipt-thanks">ขอบคุณที่ให้เราเป็นส่วนหนึ่งของวันดี ๆ ♡<small>ใบเสร็จจากระบบตัวอย่าง</small></div>`;
   $("#receipt-dialog").showModal();
 }
 $("#print").onclick = () => window.print();
@@ -329,8 +336,7 @@ document.querySelectorAll(".nav").forEach(
         .forEach((p) => (p.hidden = p.id !== b.dataset.page + "-page"));
       $("#page-title").textContent = pageNames[b.dataset.page][0];
       $("#page-subtitle").textContent = pageNames[b.dataset.page][1];
-      renderMenus();
-      renderReports();
+      if (b.dataset.page === "reports") loadReports();
     }),
 );
 function renderMenus() {
@@ -338,127 +344,139 @@ function renderMenus() {
     state.menus
       .map(
         (m) =>
-          `<tr><td>☕ ${escapeHTML(m.name)}</td><td>${categories[m.category] || "อื่น ๆ"}</td><td>${money(m.price)}</td><td>${m.stock === 0 ? "หมดชั่วคราว" : m.stock}</td><td><button data-edit="${escapeHTML(m.id)}">แก้ไข</button><button class="delete" data-delete="${escapeHTML(m.id)}">ลบ</button></td></tr>`,
+          `<tr><td>☕ ${escapeHTML(m.name)}</td><td>${escapeHTML(m.categoryName)}</td><td>${money(m.price)}</td><td>${m.stockQuantity === 0 ? "หมด" : m.stockQuantity}</td><td><button data-edit="${m.menuId}">แก้ไข</button><button class="delete" data-delete="${m.menuId}">ลบ</button></td></tr>`,
       )
       .join("") ||
     '<tr><td colspan="5">ยังไม่มีเมนู เพิ่มเมนูใหม่เพื่อเริ่มใช้งาน</td></tr>';
 }
 function openMenuForm(menu) {
-  editingId = menu?.id || null;
+  editingId = menu?.menuId || null;
   $("#form-title").textContent = menu ? "แก้ไขเมนู" : "เพิ่มเมนูใหม่";
   $("#menu-name").value = menu?.name || "";
-  $("#menu-category").value = menu?.category || "coffee";
+  $("#menu-category").value = String(
+    menu?.categoryId || state.categories[0]?.categoryId || "",
+  );
   $("#menu-price").value = menu?.price || "";
-  $("#menu-stock").value = menu?.stock ?? 0;
+  $("#menu-stock").value = menu?.stockQuantity ?? 0;
   $("#menu-dialog").showModal();
 }
 $("#add-menu").onclick = () => openMenuForm();
-$("#menu-table").onclick = (e) => {
+$("#menu-table").onclick = async (e) => {
   const b = e.target.closest("button");
   if (!b) return;
   if (b.dataset.edit)
-    openMenuForm(state.menus.find((m) => m.id === b.dataset.edit));
+    openMenuForm(state.menus.find((m) => m.menuId === Number(b.dataset.edit)));
   else if (b.dataset.delete && confirm("ต้องการลบเมนูนี้หรือไม่?")) {
-    state.menus = state.menus.filter((m) => m.id !== b.dataset.delete);
-    cart = cart.filter((i) => i.id !== b.dataset.delete);
-    save();
-    renderMenus();
-    renderCart();
-    toast("ลบเมนูเรียบร้อย");
+    try {
+      await api(
+        "DELETE",
+        `/api/menu/${b.dataset.delete}?branchId=${state.branchId}`,
+      );
+      toast("ลบเมนูเรียบร้อย");
+    } catch (err) {
+      toast(err.message);
+    }
+    await loadMenus();
   }
 };
-$("#menu-form").onsubmit = (e) => {
+$("#menu-form").onsubmit = async (e) => {
   e.preventDefault();
   const name = $("#menu-name").value.trim(),
     price = Number($("#menu-price").value),
-    stock = Number($("#menu-stock").value);
+    stockQuantity = Number($("#menu-stock").value),
+    categoryId = Number($("#menu-category").value);
   if (
     !name ||
     !Number.isFinite(price) ||
     price <= 0 ||
-    !Number.isInteger(stock) ||
-    stock < 0
+    !Number.isInteger(stockQuantity) ||
+    stockQuantity < 0
   ) {
     toast("กรุณาตรวจสอบชื่อ ราคา และจำนวนสต็อก");
     return;
   }
-  if (editingId) {
-    const menu = state.menus.find((m) => m.id === editingId);
-    Object.assign(menu, {
-      name,
-      price,
-      stock,
-      category: $("#menu-category").value,
-    });
-    cart = cart.filter((i) => i.id !== editingId);
-    toast("บันทึกแล้ว กรุณาเพิ่มเมนูที่แก้ไขในออร์เดอร์อีกครั้ง");
-  } else {
-    state.menus.push({
-      id: "menu-" + crypto.randomUUID(),
-      name,
-      price,
-      stock,
-      category: $("#menu-category").value,
-      color: "#a08b64",
-      bg: "#e7ebdf",
-    });
-    toast("เพิ่มเมนูเรียบร้อย");
+  const body = {
+    branchId: state.branchId,
+    categoryId,
+    name,
+    price,
+    stockQuantity,
+  };
+  try {
+    if (editingId) {
+      await api("PUT", `/api/menu/${editingId}`, body);
+      cart = cart.filter((i) => i.menuId !== editingId);
+      toast("บันทึกแล้ว กรุณาเพิ่มเมนูที่แก้ไขในออร์เดอร์อีกครั้ง");
+    } else {
+      await api("POST", "/api/menu", body);
+      toast("เพิ่มเมนูเรียบร้อย");
+    }
+  } catch (err) {
+    toast(err.message);
+    return;
   }
-  save();
   $("#menu-dialog").close();
-  renderMenus();
-  renderCart();
+  await loadMenus();
 };
-function dayKey(date) {
-  return new Date(date).toLocaleDateString("en-CA", {
-    timeZone: "Asia/Bangkok",
-  });
-}
-function renderReports() {
-  const orders = state.orders.filter(
-    (o) =>
-      $("#report-range").value === "all" ||
-      dayKey(o.date) === dayKey(new Date()),
-  );
+async function loadReports() {
+  $("#report-branch").textContent = "· สาขา" + branchName();
+  let sales, orders;
+  try {
+    [sales, orders] = await Promise.all([
+      api("GET", `/api/reports/sales?branchId=${state.branchId}`),
+      api("GET", `/api/orders/branch/${state.branchId}`),
+    ]);
+  } catch (err) {
+    toast(err.message);
+    return;
+  }
+  // backend แปลง SUM (DECIMAL) เป็น number แล้วตาม API contract
   $("#sales-total").textContent = money(
-    orders.reduce((s, o) => s + o.total, 0),
+    sales.reduce((s, row) => s + row.totalSales, 0),
   );
   $("#sales-orders").textContent = orders.length;
-  $("#sales-cups").textContent = orders.reduce(
-    (n, o) => n + o.items.reduce((s, i) => s + i.qty, 0),
+  $("#sales-cups").textContent = sales.reduce(
+    (n, row) => n + row.totalQuantity,
     0,
   );
-  const grouped = new Map();
-  orders.forEach((o) =>
-    o.items.forEach((i) => {
-      const row = grouped.get(i.id) || { name: i.name, qty: 0, total: 0 };
-      row.qty += i.qty;
-      row.total += i.price * i.qty;
-      grouped.set(i.id, row);
-    }),
-  );
   $("#sales-table").innerHTML =
-    [...grouped.values()]
-      .sort((a, b) => b.total - a.total)
+    sales
       .map(
-        (i) =>
-          `<tr><td>${escapeHTML(i.name)}</td><td>${i.qty}</td><td>${money(i.total)}</td></tr>`,
+        (row) =>
+          `<tr><td>${escapeHTML(row.name)}</td><td>${row.totalQuantity}</td><td>${money(row.totalSales)}</td></tr>`,
       )
-      .join("") || '<tr><td colspan="3">ยังไม่มียอดขายในช่วงเวลานี้</td></tr>';
+      .join("") || '<tr><td colspan="3">ยังไม่มียอดขายในสาขานี้</td></tr>';
   $("#history").innerHTML =
     orders
-      .slice()
-      .reverse()
       .map(
         (o) =>
-          `<div class="history-row"><div><strong>${escapeHTML(o.id)}</strong><small>${new Date(o.date).toLocaleString("th-TH")} · ${o.payment === "cash" ? "เงินสด" : "QR Code"}</small></div><strong>฿${money(o.total)}</strong><button class="secondary" data-receipt="${escapeHTML(o.id)}">ใบเสร็จ</button></div>`,
+          `<div class="history-row"><div><strong>#${o.orderId}</strong><small>${new Date(o.createdAt).toLocaleString("th-TH")} · ${paymentLabels[o.paymentMethod] || escapeHTML(o.paymentMethod)}</small></div><strong>฿${money(o.totalAmount)}</strong><button class="secondary" data-receipt="${o.orderId}">ใบเสร็จ</button></div>`,
       )
       .join("") || '<p class="empty">ออร์เดอร์ที่ยืนยันแล้วจะแสดงที่นี่</p>';
 }
-$("#report-range").onchange = renderReports;
-$("#history").onclick = (e) => {
+$("#refresh-report").onclick = loadReports;
+$("#history").onclick = async (e) => {
   const b = e.target.closest("[data-receipt]");
-  if (b) showReceipt(state.orders.find((o) => o.id === b.dataset.receipt));
+  if (!b) return;
+  try {
+    const o = await api(
+      "GET",
+      `/api/orders/${b.dataset.receipt}?branchId=${state.branchId}`,
+    );
+    showReceipt({
+      orderId: o.orderId,
+      date: o.createdAt,
+      items: o.items.map((i) => ({
+        name: i.menuName,
+        qty: i.quantity,
+        price: i.unitPrice,
+      })),
+      total: o.totalAmount,
+      payment: o.paymentMethod,
+    });
+  } catch (err) {
+    toast(err.message);
+  }
 };
 $("#today").textContent = new Date().toLocaleDateString("th-TH", {
   day: "numeric",
@@ -467,7 +485,4 @@ $("#today").textContent = new Date().toLocaleDateString("th-TH", {
   timeZone: "Asia/Bangkok",
 });
 renderCart();
-renderMenus();
-renderReports();
-if (!storageAvailable)
-  toast("ไม่สามารถอ่านข้อมูลเดิมได้ เริ่มข้อมูลตัวอย่างใหม่");
+init();

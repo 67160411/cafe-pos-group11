@@ -1,14 +1,5 @@
 const menuModel = require("../models/menuModel");
-
-function parseId(value) {
-  if (typeof value === "string" && /^[1-9]\d*$/.test(value)) {
-    value = Number(value);
-  }
-
-  return Number.isSafeInteger(value) && value > 0 && value <= 2147483647
-    ? value
-    : null;
-}
+const parseId = require("../utils/parseId");
 
 function validPrice(value) {
   return (
@@ -156,6 +147,8 @@ exports.updateMenu = async (req, res) => {
   const branchId = parseId(body.branchId);
   const menuId = parseId(req.params.id);
   const { name, price, stockQuantity } = body;
+  const categoryId =
+    body.categoryId === undefined ? undefined : parseId(body.categoryId);
 
   if (!branchId || !menuId) {
     return res.status(400).json({
@@ -164,12 +157,20 @@ exports.updateMenu = async (req, res) => {
   }
 
   if (
+    categoryId === undefined &&
     name === undefined &&
     price === undefined &&
     stockQuantity === undefined
   ) {
     return res.status(400).json({
-      error: "ต้องส่ง name, price หรือ stockQuantity อย่างน้อย 1 ฟิลด์",
+      error:
+        "ต้องส่ง categoryId, name, price หรือ stockQuantity อย่างน้อย 1 ฟิลด์",
+    });
+  }
+
+  if (categoryId === null) {
+    return res.status(400).json({
+      error: "categoryId ต้องเป็นจำนวนเต็มมากกว่า 0",
     });
   }
 
@@ -193,6 +194,7 @@ exports.updateMenu = async (req, res) => {
 
   try {
     const affectedRows = await menuModel.updateFields(menuId, branchId, {
+      categoryId,
       name: name === undefined ? undefined : name.trim(),
       price,
       stockQuantity,

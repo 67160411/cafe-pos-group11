@@ -1,5 +1,23 @@
 const db = require("../config/db");
 
+const LOW_STOCK_THRESHOLD = 10;
+
+// ใช้ threshold เดียวกันทุกจุดที่เช็คสต็อกต่ำ
+exports.isLowStock = (stockQuantity) => stockQuantity < LOW_STOCK_THRESHOLD;
+
+// DB ใช้ snake_case แต่ JSON ใช้ camelCase และ DECIMAL ต้องแปลงเป็น number
+function toMenu(row) {
+  return {
+    menuId: row.menu_id,
+    branchId: row.branch_id,
+    categoryId: row.category_id,
+    categoryName: row.category_name,
+    name: row.name,
+    price: Number(row.price),
+    stockQuantity: row.stock_quantity,
+  };
+}
+
 // ใช้ตอนสร้าง Order
 exports.findManyForStockCheck = async (menuIds, branchId) => {
   if (menuIds.length === 0) return [];
@@ -41,17 +59,20 @@ exports.findAllByBranch = async (branchId) => {
     [branchId],
   );
 
-  return rows;
+  return rows.map(toMenu);
 };
 
 // ดูเมนูตาม ID และสาขา
 exports.findByIdAndBranch = async (menuId, branchId) => {
   const [rows] = await db.query(
-    "SELECT * FROM menu_item WHERE menu_id = ? AND branch_id = ?",
+    `SELECT m.*, c.name AS category_name
+     FROM menu_item m
+     JOIN category c ON m.category_id = c.category_id
+     WHERE m.menu_id = ? AND m.branch_id = ?`,
     [menuId, branchId],
   );
 
-  return rows[0];
+  return rows[0] ? toMenu(rows[0]) : undefined;
 };
 
 // เพิ่มเมนู
@@ -76,15 +97,23 @@ exports.create = async (
 exports.updateFields = async (
   menuId,
   branchId,
-  { name, price, stockQuantity },
+  { categoryId, name, price, stockQuantity },
 ) => {
   const [result] = await db.query(
     `UPDATE menu_item
-     SET name = COALESCE(?, name),
+     SET category_id = COALESCE(?, category_id),
+         name = COALESCE(?, name),
          price = COALESCE(?, price),
          stock_quantity = COALESCE(?, stock_quantity)
      WHERE menu_id = ? AND branch_id = ?`,
-    [name ?? null, price ?? null, stockQuantity ?? null, menuId, branchId],
+    [
+      categoryId ?? null,
+      name ?? null,
+      price ?? null,
+      stockQuantity ?? null,
+      menuId,
+      branchId,
+    ],
   );
 
   return result.affectedRows;

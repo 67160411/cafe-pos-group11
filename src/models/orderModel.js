@@ -1,4 +1,6 @@
 const db = require("../config/db");
+const { Order, OrderItem } = require("./Order");
+const { isLowStock } = require("./menuModel");
 
 function httpError(status, message) {
   return Object.assign(new Error(message), { status });
@@ -61,7 +63,7 @@ exports.createOrder = async ({
     // ตรวจและล็อกสต็อกก่อนบันทึกรายการ
     for (const [menuId, quantity] of entries) {
       const [rows] = await conn.query(
-        `SELECT menu_id, price, stock_quantity
+        `SELECT menu_id, name, price, stock_quantity
          FROM menu_item
          WHERE menu_id = ? AND branch_id = ?
          FOR UPDATE`,
@@ -75,7 +77,10 @@ exports.createOrder = async ({
       }
 
       if (menu.stock_quantity < quantity) {
-        throw httpError(400, `สต็อกไม่พอสำหรับเมนู ${menuId}`);
+        throw httpError(
+          400,
+          `สต็อกไม่พอสำหรับเมนู ${menu.name} (เหลือ ${menu.stock_quantity})`,
+        );
       }
 
       menus.set(menuId, menu);
@@ -89,10 +94,12 @@ exports.createOrder = async ({
     );
 
     const orderId = order.insertId;
+    const receipt = new Order(orderId, branchId, employeeId, paymentMethod);
     const lowStockMenuIds = [];
 
     for (const [menuId, quantity] of entries) {
       const menu = menus.get(menuId);
+      receipt.addItem(new OrderItem(menuId, quantity, menu.price));
 
       // ใช้ราคาจากฐานข้อมูล
       await conn.query(
@@ -122,12 +129,16 @@ exports.createOrder = async ({
         [menuId, -quantity],
       );
 
-      if (menu.stock_quantity - quantity < 10) {
+      if (isLowStock(menu.stock_quantity - quantity)) {
         lowStockMenuIds.push(menuId);
       }
     }
 
-    return { orderId, lowStockMenuIds };
+    return {
+      orderId,
+      totalAmount: receipt.calculateTotal(),
+      lowStockMenuIds,
+    };
   });
 };
 
@@ -143,30 +154,50 @@ exports.findById = async (orderId, branchId) => {
 
   const [items] = await db.query(
     `SELECT
-       oi.order_item_id,
-       oi.order_id,
        oi.menu_id,
        m.name AS menu_name,
        oi.quantity,
-       oi.unit_price,
-       oi.quantity * oi.unit_price AS subtotal
+       oi.unit_price
      FROM order_item oi
      JOIN menu_item m ON m.menu_id = oi.menu_id
      WHERE oi.order_id = ?`,
     [orderId],
   );
 
-  const totalCents = items.reduce(
-    (sum, item) => sum + Math.round(Number(item.subtotal) * 100),
-    0,
+  const order = toOrder(orders[0]);
+  const receipt = new Order(
+    order.orderId,
+    order.branchId,
+    order.employeeId,
+    order.paymentMethod,
   );
 
+  for (const item of items) {
+    receipt.addItem(
+      new OrderItem(item.menu_id, item.quantity, item.unit_price, item.menu_name),
+    );
+  }
+
   return {
-    ...orders[0],
-    items,
-    total: totalCents / 100,
+    ...order,
+    items: receipt.items.map((item) => ({
+      ...item,
+      subtotal: Math.round(item.calculateSubtotal() * 100) / 100,
+    })),
+    totalAmount: receipt.calculateTotal(),
   };
 };
+
+// DB ใช้ snake_case แต่ JSON ใช้ camelCase
+function toOrder(row) {
+  return {
+    orderId: row.order_id,
+    branchId: row.branch_id,
+    employeeId: row.employee_id,
+    paymentMethod: row.payment_method,
+    createdAt: row.created_at,
+  };
+}
 
 exports.findByBranch = async (branchId) => {
   const [rows] = await db.query(
@@ -181,7 +212,11 @@ exports.findByBranch = async (branchId) => {
     [branchId],
   );
 
-  return rows;
+  // SUM ได้ DECIMAL ซึ่ง mysql2 ส่งกลับเป็น string
+  return rows.map((row) => ({
+    ...toOrder(row),
+    totalAmount: Number(row.total),
+  }));
 };
 
 // ยกเลิก Order พร้อมคืนสต็อก

@@ -19,8 +19,9 @@
         ><span>brue rim lay<small>BANGSAEN SPEED CAFE</small></span></a
       >
       <div class="branch">
-        <span>สาขาที่ให้บริการ</span><strong>บางแสน ↗</strong
-        ><small>พร้อมรับออร์เดอร์ <i></i></small>
+        <label for="branch-select">สาขาที่ให้บริการ</label
+        ><select id="branch-select" aria-label="เลือกสาขา"></select
+        ><small id="branch-status">กำลังเชื่อมต่อระบบ…</small>
       </div>
       <nav aria-label="เมนูหลัก">
         <button class="nav active" data-page="order">
@@ -33,7 +34,10 @@
       </nav>
       <div class="sidebar-bottom">
         <div class="avatar">br</div>
-        <div><strong>พนักงานหน้าร้าน</strong><small>สาขาบางแสน</small></div>
+        <div>
+          <strong id="employee-name">พนักงานหน้าร้าน</strong
+          ><small id="employee-branch"></small>
+        </div>
       </div>
     </aside>
     <main>
@@ -59,12 +63,7 @@
                   aria-label="ค้นหาเมนู"
               /></label>
             </div>
-            <div class="filters" id="filters">
-              <button class="selected" data-category="all">ทั้งหมด</button
-              ><button data-category="coffee">☕ กาแฟ</button
-              ><button data-category="tea">🍵 ชาและมัทฉะ</button
-              ><button data-category="other">🥛 อื่น ๆ</button>
-            </div>
+            <div class="filters" id="filters"></div>
             <div class="product-grid" id="products"></div>
             <div class="catalog-note">
               🏁 brue rim lay — เติมกาแฟให้เต็มถัง แล้วซิ่งเลียบหาดบางแสน 🌊
@@ -139,11 +138,8 @@
       </section>
       <section id="reports-page" class="page" hidden>
         <div class="section-toolbar">
-          <h2>ภาพรวมยอดขาย</h2>
-          <select id="report-range" aria-label="ช่วงเวลารายงาน">
-            <option value="today">วันนี้</option>
-            <option value="all">ทั้งหมด</option>
-          </select>
+          <h2>ภาพรวมยอดขาย <span id="report-branch"></span></h2>
+          <button id="refresh-report" class="secondary">รีเฟรช</button>
         </div>
         <div class="stats">
           <article>
@@ -184,13 +180,9 @@
           <h2 id="form-title">เพิ่มเมนูใหม่</h2>
           <button type="button" class="close-dialog" aria-label="ปิด">×</button>
         </div>
-        <label>ชื่อเมนู<input id="menu-name" required maxlength="60" /></label
+        <label>ชื่อเมนู<input id="menu-name" required maxlength="100" /></label
         ><label
-          >หมวดหมู่<select id="menu-category">
-            <option value="coffee">กาแฟ</option>
-            <option value="tea">ชาและมัทฉะ</option>
-            <option value="other">อื่น ๆ</option>
-          </select></label
+          >หมวดหมู่<select id="menu-category"></select></label
         >
         <div class="form-row">
           <label

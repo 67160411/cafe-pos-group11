@@ -176,9 +176,22 @@ input::placeholder {
   background: var(--checker);
   opacity: 0.8;
 }
-.branch > span {
+.branch > span,
+.branch > label {
+  display: block;
   font-size: 11px;
   color: var(--muted);
+}
+.branch select {
+  width: 100%;
+  margin: 6px 0 10px;
+  font-size: 18px;
+  font-style: italic;
+  font-weight: 600;
+  color: var(--sea);
+}
+.branch small.offline {
+  color: #ff6b6b;
 }
 .branch strong {
   display: block;
@@ -1133,9 +1146,25 @@ form > .primary {
     background: var(--stripe);
   }
   .brand small,
-  .branch,
+  .branch > label,
+  .branch > small,
+  .branch:before,
   .sidebar-bottom {
     display: none;
+  }
+  /* ยังต้องเลือกสาขาได้บนแท็บเล็ต/มือถือ */
+  .branch {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+  .branch select {
+    width: auto;
+    min-width: 92px;
+    margin: 0;
+    padding: 8px 6px;
+    font-size: 14px;
   }
   nav {
     display: flex;
@@ -1272,4 +1301,7 @@ form > .primary {
     size: 80mm auto;
     margin: 0;
   }
+}
+.product.sold-out {
+  opacity: 0.55;
 }

@@ -1,4 +1,6 @@
 ﻿const orderModel = require("../models/orderModel");
+const parsePositiveId = require("../utils/parseId");
+
 exports.createOrder = async (req, res) => {
   try {
     const { branchId, employeeId, items, paymentMethod } = req.body || {};
@@ -84,18 +86,6 @@ exports.createOrder = async (req, res) => {
   }
 };
 
-
-function parsePositiveId(value) {
-  if (typeof value === "string" && /^[1-9]\d*$/.test(value)) {
-    value = Number(value);
-  }
-
-  return Number.isSafeInteger(value) &&
-    value > 0 &&
-    value <= 2147483647
-    ? value
-    : null;
-}
 
 // GET /api/orders/:order_id?branchId=1
 exports.getOrderById = async (req, res) => {
