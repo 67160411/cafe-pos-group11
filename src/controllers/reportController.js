@@ -7,7 +7,7 @@ exports.getSalesReport = async (req, res) => {
 
   if (!branchId) {
     return res.status(400).json({
-      error: "ต้องระบุ branchId เป็นจำนวนเต็มมากกว่า 0",
+      error: "branchId is required and must be a positive integer",
     });
   }
 
@@ -17,7 +17,7 @@ exports.getSalesReport = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({
-      error: "เกิดข้อผิดพลาดในการดึงรายงานยอดขาย",
+      error: "Failed to load sales report",
     });
   }
 };

@@ -42,7 +42,7 @@ exports.deductStock = async (menuId, quantity) => {
   );
 
   if (result.affectedRows === 0) {
-    throw new Error("ไม่พบเมนูหรือสต็อกไม่เพียงพอ");
+    throw new Error("Menu item not found or insufficient stock");
   }
 
   return result.affectedRows;

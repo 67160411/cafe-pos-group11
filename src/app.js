@@ -24,8 +24,8 @@ app.use((err, req, res, next) => {
   return res.status(err.status || 500).json({
     error:
       err.status === 400
-        ? "รูปแบบข้อมูลที่ส่งมาไม่ถูกต้อง"
-        : "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์",
+        ? "Invalid request body"
+        : "Internal server error",
   });
 });
 

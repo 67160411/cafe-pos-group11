@@ -28,24 +28,24 @@ function handleError(res, err) {
 
   if (err.code === "ER_DUP_ENTRY") {
     return res.status(409).json({
-      error: "มีชื่อเมนูนี้ในสาขาแล้ว",
+      error: "A menu item with this name already exists in this branch",
     });
   }
 
   if (err.code === "ER_NO_REFERENCED_ROW_2") {
     return res.status(400).json({
-      error: "ไม่พบสาขาหรือหมวดหมู่ที่ระบุ",
+      error: "Branch or category not found",
     });
   }
 
   if (err.code === "ER_ROW_IS_REFERENCED_2") {
     return res.status(409).json({
-      error: "ลบไม่ได้ เพราะเมนูนี้มีรายการสั่งซื้อหรือประวัติสต็อก",
+      error: "Cannot delete: this menu item has order or stock history",
     });
   }
 
   return res.status(500).json({
-    error: "เกิดข้อผิดพลาดในการจัดการเมนู",
+    error: "Failed to process menu request",
   });
 }
 
@@ -55,7 +55,7 @@ exports.listMenu = async (req, res) => {
 
   if (!branchId) {
     return res.status(400).json({
-      error: "ต้องระบุ branchId เป็นจำนวนเต็มมากกว่า 0",
+      error: "branchId is required and must be a positive integer",
     });
   }
 
@@ -74,7 +74,7 @@ exports.getMenuById = async (req, res) => {
 
   if (!branchId || !menuId) {
     return res.status(400).json({
-      error: "ต้องระบุ menuId และ branchId ให้ถูกต้อง",
+      error: "A valid menuId and branchId are required",
     });
   }
 
@@ -83,7 +83,7 @@ exports.getMenuById = async (req, res) => {
 
     if (!menu) {
       return res.status(404).json({
-        error: "ไม่พบเมนูในสาขานี้",
+        error: "Menu item not found in this branch",
       });
     }
 
@@ -104,25 +104,25 @@ exports.createMenu = async (req, res) => {
 
   if (!branchId || !categoryId) {
     return res.status(400).json({
-      error: "ต้องระบุ branchId และ categoryId ให้ถูกต้อง",
+      error: "A valid branchId and categoryId are required",
     });
   }
 
   if (!validName(name)) {
     return res.status(400).json({
-      error: "ชื่อเมนูต้องมี 1–100 ตัวอักษร",
+      error: "Name must be 1–100 characters",
     });
   }
 
   if (!validPrice(price)) {
     return res.status(400).json({
-      error: "ราคาต้องมากกว่า 0 และมีทศนิยมไม่เกิน 2 ตำแหน่ง",
+      error: "Price must be greater than 0 with at most 2 decimal places",
     });
   }
 
   if (!validStock(stockQuantity)) {
     return res.status(400).json({
-      error: "stockQuantity ต้องเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป",
+      error: "stockQuantity must be an integer of 0 or more",
     });
   }
 
@@ -152,7 +152,7 @@ exports.updateMenu = async (req, res) => {
 
   if (!branchId || !menuId) {
     return res.status(400).json({
-      error: "ต้องระบุ menuId และ branchId ให้ถูกต้อง",
+      error: "A valid menuId and branchId are required",
     });
   }
 
@@ -164,31 +164,31 @@ exports.updateMenu = async (req, res) => {
   ) {
     return res.status(400).json({
       error:
-        "ต้องส่ง categoryId, name, price หรือ stockQuantity อย่างน้อย 1 ฟิลด์",
+        "Provide at least one of categoryId, name, price or stockQuantity",
     });
   }
 
   if (categoryId === null) {
     return res.status(400).json({
-      error: "categoryId ต้องเป็นจำนวนเต็มมากกว่า 0",
+      error: "categoryId must be a positive integer",
     });
   }
 
   if (name !== undefined && !validName(name)) {
     return res.status(400).json({
-      error: "ชื่อเมนูต้องมี 1–100 ตัวอักษร",
+      error: "Name must be 1–100 characters",
     });
   }
 
   if (price !== undefined && !validPrice(price)) {
     return res.status(400).json({
-      error: "ราคาต้องมากกว่า 0 และมีทศนิยมไม่เกิน 2 ตำแหน่ง",
+      error: "Price must be greater than 0 with at most 2 decimal places",
     });
   }
 
   if (stockQuantity !== undefined && !validStock(stockQuantity)) {
     return res.status(400).json({
-      error: "stockQuantity ต้องเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป",
+      error: "stockQuantity must be an integer of 0 or more",
     });
   }
 
@@ -206,7 +206,7 @@ exports.updateMenu = async (req, res) => {
 
       if (!menu) {
         return res.status(404).json({
-          error: "ไม่พบเมนูในสาขานี้",
+          error: "Menu item not found in this branch",
         });
       }
     }
@@ -224,7 +224,7 @@ exports.deleteMenu = async (req, res) => {
 
   if (!branchId || !menuId) {
     return res.status(400).json({
-      error: "ต้องระบุ menuId และ branchId ให้ถูกต้อง",
+      error: "A valid menuId and branchId are required",
     });
   }
 
@@ -233,7 +233,7 @@ exports.deleteMenu = async (req, res) => {
 
     if (affectedRows === 0) {
       return res.status(404).json({
-        error: "ไม่พบเมนูในสาขานี้",
+        error: "Menu item not found in this branch",
       });
     }
 

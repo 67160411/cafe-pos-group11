@@ -11,7 +11,7 @@ exports.createOrder = async (req, res) => {
       branchId > 2147483647
     ) {
       return res.status(400).json({
-        error: "branchId ไม่ถูกต้อง",
+        error: "Invalid branchId",
       });
     }
 
@@ -21,19 +21,19 @@ exports.createOrder = async (req, res) => {
       employeeId > 2147483647
     ) {
       return res.status(400).json({
-        error: "employeeId ไม่ถูกต้อง",
+        error: "Invalid employeeId",
       });
     }
 
     if (!Array.isArray(items) || items.length === 0 || items.length > 100) {
       return res.status(400).json({
-        error: "items ต้องมี 1–100 รายการ",
+        error: "items must contain 1–100 entries",
       });
     }
 
     if (!["cash", "qr", "card"].includes(paymentMethod)) {
       return res.status(400).json({
-        error: "paymentMethod ต้องเป็น cash, qr หรือ card",
+        error: "paymentMethod must be cash, qr or card",
       });
     }
 
@@ -48,7 +48,7 @@ exports.createOrder = async (req, res) => {
         item.quantity > 2147483647
       ) {
         return res.status(400).json({
-          error: "menuId และ quantity ต้องเป็นจำนวนเต็มมากกว่า 0",
+          error: "menuId and quantity must be positive integers",
         });
       }
     }
@@ -62,7 +62,7 @@ exports.createOrder = async (req, res) => {
     });
 
     if (result.lowStockMenuIds.length > 0) {
-      console.warn("สต็อกใกล้หมด menu_id:", result.lowStockMenuIds);
+      console.warn("Low stock menu_id:", result.lowStockMenuIds);
     }
 
     return res.status(201).json(result);
@@ -78,9 +78,9 @@ exports.createOrder = async (req, res) => {
     return res.status(status).json({
       error:
         status === 500
-          ? "เกิดข้อผิดพลาดในการสร้างออเดอร์"
+          ? "Failed to create order"
           : status === 409 && !err.status
-            ? "มีการแก้ไขข้อมูลพร้อมกัน กรุณาลองใหม่"
+            ? "Data was modified concurrently, please try again"
             : err.message,
     });
   }
@@ -94,7 +94,7 @@ exports.getOrderById = async (req, res) => {
 
   if (!orderId || !branchId) {
     return res.status(400).json({
-      error: "ต้องระบุ order_id และ branchId ให้ถูกต้อง",
+      error: "A valid order_id and branchId are required",
     });
   }
 
@@ -103,7 +103,7 @@ exports.getOrderById = async (req, res) => {
 
     if (!order) {
       return res.status(404).json({
-        error: "ไม่พบออเดอร์ในสาขานี้",
+        error: "Order not found in this branch",
       });
     }
 
@@ -111,7 +111,7 @@ exports.getOrderById = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({
-      error: "เกิดข้อผิดพลาดในการค้นหาออเดอร์",
+      error: "Failed to load order",
     });
   }
 };
@@ -122,7 +122,7 @@ exports.getOrdersByBranch = async (req, res) => {
 
   if (!branchId) {
     return res.status(400).json({
-      error: "branch_id ต้องเป็นจำนวนเต็มมากกว่า 0",
+      error: "branch_id must be a positive integer",
     });
   }
 
@@ -132,7 +132,7 @@ exports.getOrdersByBranch = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({
-      error: "เกิดข้อผิดพลาดในการค้นหาออเดอร์ของสาขา",
+      error: "Failed to load branch orders",
     });
   }
 };
@@ -144,7 +144,7 @@ exports.deleteOrder = async (req, res) => {
 
   if (!orderId || !branchId) {
     return res.status(400).json({
-      error: "ต้องระบุ order_id และ branchId ให้ถูกต้อง",
+      error: "A valid order_id and branchId are required",
     });
   }
 
@@ -153,7 +153,7 @@ exports.deleteOrder = async (req, res) => {
 
     if (affectedRows === 0) {
       return res.status(404).json({
-        error: "ไม่พบออเดอร์ในสาขานี้",
+        error: "Order not found in this branch",
       });
     }
 
@@ -168,7 +168,7 @@ exports.deleteOrder = async (req, res) => {
       error:
         err.status
           ? err.message
-          : "เกิดข้อผิดพลาดในการยกเลิกออเดอร์",
+          : "Failed to cancel order",
     });
   }
 };

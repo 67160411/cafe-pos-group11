@@ -8,7 +8,7 @@ exports.listBranches = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({
-      error: "เกิดข้อผิดพลาดในการดึงข้อมูลสาขา",
+      error: "Failed to load branches",
     });
   }
 };
@@ -19,7 +19,7 @@ exports.listEmployees = async (req, res) => {
 
   if (!branchId) {
     return res.status(400).json({
-      error: "branch_id ต้องเป็นจำนวนเต็มมากกว่า 0",
+      error: "branch_id must be a positive integer",
     });
   }
 
@@ -28,7 +28,7 @@ exports.listEmployees = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({
-      error: "เกิดข้อผิดพลาดในการดึงข้อมูลพนักงาน",
+      error: "Failed to load employees",
     });
   }
 };
@@ -40,7 +40,7 @@ exports.listCategories = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({
-      error: "เกิดข้อผิดพลาดในการดึงข้อมูลหมวดหมู่",
+      error: "Failed to load categories",
     });
   }
 };

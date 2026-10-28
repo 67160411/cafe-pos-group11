@@ -35,7 +35,7 @@ exports.createOrder = async ({
     const quantity = (quantities.get(item.menuId) || 0) + item.quantity;
 
     if (!Number.isSafeInteger(quantity) || quantity > 2147483647) {
-      throw httpError(400, "จำนวนสินค้ามากเกินไป");
+      throw httpError(400, "Quantity is too large");
     }
 
     quantities.set(item.menuId, quantity);
@@ -55,7 +55,7 @@ exports.createOrder = async ({
     );
 
     if (employees.length === 0) {
-      throw httpError(400, "ไม่พบพนักงานในสาขานี้");
+      throw httpError(400, "Employee not found in this branch");
     }
 
     const menus = new Map();
@@ -73,13 +73,13 @@ exports.createOrder = async ({
       const menu = rows[0];
 
       if (!menu) {
-        throw httpError(400, `ไม่พบเมนู ${menuId} ในสาขานี้`);
+        throw httpError(400, `Menu item ${menuId} not found in this branch`);
       }
 
       if (menu.stock_quantity < quantity) {
         throw httpError(
           400,
-          `สต็อกไม่พอสำหรับเมนู ${menu.name} (เหลือ ${menu.stock_quantity})`,
+          `Insufficient stock for ${menu.name} (${menu.stock_quantity} left)`,
         );
       }
 
@@ -119,7 +119,7 @@ exports.createOrder = async ({
       );
 
       if (stockResult.affectedRows === 0) {
-        throw httpError(409, "สต็อกเปลี่ยนแปลง กรุณาลองใหม่");
+        throw httpError(409, "Stock changed, please try again");
       }
 
       await conn.query(
@@ -251,7 +251,7 @@ exports.remove = async (orderId, branchId) => {
       );
 
       if (menus.length === 0) {
-        throw httpError(409, "ข้อมูลเมนูและสาขาไม่ตรงกัน");
+        throw httpError(409, "Menu item and branch do not match");
       }
 
       await conn.query(
