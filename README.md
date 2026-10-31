@@ -2,6 +2,7 @@
 
 - [Project Report docx](docs/project-report.docx)
 - [Project Report pdf](docs/project-report.pdf)
+- [Presentation](docs/Presentation.pdf)
 - [Team Charter](docs/wk01-team-charter.md)
 - [Feasibility Report](docs/wk02-feasibility-report.md)
 - [Requirements](docs/wk03-requirements.md)
