@@ -1,7 +1,7 @@
 ## เอกสารโครงงาน
 
 - [Project Report pdf](docs/project-report.pdf)
-- [Presentation](docs/presentation.pdf)
+- [Presentation](docs/Bangsaen%20Speed%20Cafe.pdf)
 - [Team Charter](docs/wk01-team-charter.md)
 - [Feasibility Report](docs/wk02-feasibility-report.md)
 - [Requirements](docs/wk03-requirements.md)
