@@ -1,6 +1,5 @@
 ## เอกสารโครงงาน
 
-- [Project Report docx](docs/project-report.docx)
 - [Project Report pdf](docs/project-report.pdf)
 - [Presentation](docs/presentation.pdf)
 - [Team Charter](docs/wk01-team-charter.md)
